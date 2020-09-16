@@ -1,6 +1,5 @@
 /partonAnalysis/build
-/partonAnalysis/.vscode
 /partonAnalysis/lheEvent.root
 /partonAnalysis/hist.root
-/showerAnalysis/.vscode
 /showerAnalysis/build
+/.vscode
