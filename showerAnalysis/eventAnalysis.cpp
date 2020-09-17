@@ -14,6 +14,8 @@
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/ClusterSequence.hh"
 
+#include "Tagger/BoostedHiggs.h"
+
 using namespace std;
 using namespace fastjet;
 
@@ -96,6 +98,11 @@ vector<GenParticle*> getParton(TClonesArray *branchParticle)
     return parton;
 }
 
+vector<PseudoJet> getRemainConst(vector<PseudoJet> finalState, vector<PseudoJet> boostHiggs)
+{
+
+}
+
 double deltaR(PseudoJet j1, PseudoJet j2)
 {
     TLorentzVector p1, p2;
@@ -122,10 +129,10 @@ int flavourAssociation(PseudoJet jet, vector<GenParticle*> parton)
     return flavour;
 }
 
-vector<PseudoJet> findHiggs(vector<vector<PseudoJet>> higgsCandidate, vector<GenParticle*> parton)
+vector<PseudoJet> findBoostHiggs(vector<vector<PseudoJet>> higgsCandidate, vector<GenParticle*> parton)
 {
     double deltaInvMass, mH = 125.0, tmp;
-    vector<PseudoJet> candidate = {}, higgs;
+    vector<PseudoJet> candidate = {}, boostHiggs;
     TLorentzVector p1, p2;
     //cout << "higgs" << " " << higgsCandidate.size() << endl;
     deltaInvMass = 1000;
@@ -154,16 +161,16 @@ vector<PseudoJet> findHiggs(vector<vector<PseudoJet>> higgsCandidate, vector<Gen
             if (tmp < deltaInvMass)
             {
                 deltaInvMass = tmp;
-                higgs = candidate;
+                boostHiggs = candidate;
             }
             
         }
         
     }
-    return higgs;
+    return boostHiggs;
 }
 
-vector<PseudoJet> higgsTagger(vector<PseudoJet> finalState, vector<GenParticle*> parton)
+vector<PseudoJet> boostHiggsTagger(vector<PseudoJet> finalState, vector<GenParticle*> parton)
 {
     ClusterSequence *sequence = new ClusterSequence(finalState, JetDefinition(cambridge_algorithm, 1.5));
     vector<PseudoJet> fatjet = sorted_by_pt(sequence->inclusive_jets(150.0));
@@ -236,6 +243,7 @@ vector<PseudoJet> higgsTagger(vector<PseudoJet> finalState, vector<GenParticle*>
             combiedJet.reserve(constituent1.size() + constituent2.size());
             combiedJet.insert(combiedJet.end(), constituent1.begin(), constituent1.end());
             combiedJet.insert(combiedJet.end(), constituent2.begin(), constituent2.end());
+
             delta = min(0.3, deltaR(subStructure[i], subStructure[j]));
             filter = new ClusterSequence(combiedJet, JetDefinition(cambridge_algorithm, delta));
             tmp = sorted_by_pt(filter->inclusive_jets());
@@ -245,7 +253,7 @@ vector<PseudoJet> higgsTagger(vector<PseudoJet> finalState, vector<GenParticle*>
             }
         }
     }
-    return findHiggs(higgsCandidate, parton);
+    return findBoostHiggs(higgsCandidate, parton);
 }
 
 
@@ -261,7 +269,8 @@ int main(int argc, char *argv[])
     TClonesArray *branchParticle = treeReader->UseBranch("Particle");
     TClonesArray *branchTower = treeReader->UseBranch("Tower");
 
-    vector<PseudoJet> finalState, higgs;
+
+    vector<PseudoJet> finalState, boostHiggs;
     vector<GenParticle*> parton;
 
     int nEvent = treeReader->GetEntries();
@@ -272,16 +281,9 @@ int main(int argc, char *argv[])
         if(trigger(branchJet))
         {
             finalState = getFinalState(branchTower);
-            parton = getParton(branchParticle);
-            higgs = higgsTagger(finalState, parton);
-            if (higgs.size() == 2)
-            {
-                if ((higgs[0] + higgs[1]).pt() > 150 && abs((higgs[0] + higgs[1]).m() - 125) < 20)
-                {
-                    n += 1;
-                }
-                
-            }
+            BoostedHiggs tagger(finalState);
+            tagger.findFatJet();
+            cout << (tagger.fatJet).size() << endl;
         }
         
     }
