@@ -124,13 +124,14 @@ int flavourAssociation(PseudoJet jet, vector<GenParticle*> parton)
 
 vector<PseudoJet> findHiggs(vector<vector<PseudoJet>> higgsCandidate, vector<GenParticle*> parton)
 {
-    double deltaInvMass, mH = 125.0;
-    vector<PseudoJet> candidate = {};
+    double deltaInvMass, mH = 125.0, tmp;
+    vector<PseudoJet> candidate = {}, higgs;
     TLorentzVector p1, p2;
     //cout << "higgs" << " " << higgsCandidate.size() << endl;
+    deltaInvMass = 1000;
     for (int i = 0; i < higgsCandidate.size(); i++)
     {
-        deltaInvMass = 1000;
+        tmp = 1000;
         for (int j = 0; j < higgsCandidate[i].size(); j++)
         {
             for (int k = j + 1; k < higgsCandidate[i].size(); k++)
@@ -138,9 +139,9 @@ vector<PseudoJet> findHiggs(vector<vector<PseudoJet>> higgsCandidate, vector<Gen
                 p1.SetPxPyPzE(higgsCandidate[i][j].px(), higgsCandidate[i][j].py(), higgsCandidate[i][j].pz(), higgsCandidate[i][j].e());
                 p2.SetPxPyPzE(higgsCandidate[i][k].px(), higgsCandidate[i][k].py(), higgsCandidate[i][k].pz(), higgsCandidate[i][k].e());
                 p1 = p1 + p2;
-                if (abs(p1.M() - mH) < deltaInvMass )
+                if (abs(p1.M() - mH) < tmp )
                 {
-                    deltaInvMass = abs(p1.M() - mH);
+                    tmp = abs(p1.M() - mH);
                     candidate = {higgsCandidate[i][j], higgsCandidate[i][k]}; 
                 }
                 
@@ -150,24 +151,36 @@ vector<PseudoJet> findHiggs(vector<vector<PseudoJet>> higgsCandidate, vector<Gen
         if (candidate.size() < 2) continue;
         if (flavourAssociation(candidate[0], parton) == 5 && flavourAssociation(candidate[1], parton) == 5)
         {
-            break;
+            if (tmp < deltaInvMass)
+            {
+                deltaInvMass = tmp;
+                higgs = candidate;
+            }
+            
         }
         
     }
-    return candidate;
+    return higgs;
 }
 
 vector<PseudoJet> higgsTagger(vector<PseudoJet> finalState, vector<GenParticle*> parton)
 {
     ClusterSequence *sequence = new ClusterSequence(finalState, JetDefinition(cambridge_algorithm, 1.5));
-    vector<PseudoJet> fatjet = sorted_by_pt(sequence->inclusive_jets(110.0));
+    vector<PseudoJet> fatjet = sorted_by_pt(sequence->inclusive_jets(150.0));
     vector<PseudoJet> mother, subStructure, tmp;
     vector<PseudoJet>::iterator itMother;
     PseudoJet parent1, parent2;
     
     if (fatjet.size() > 0)
     {
-        mother = {fatjet[0]};
+        if (fatjet[0].m() > 110)
+        {
+            mother = {fatjet[0]};
+        }
+        else
+        {
+            return {};
+        }
     }
     else
     {
@@ -263,10 +276,11 @@ int main(int argc, char *argv[])
             higgs = higgsTagger(finalState, parton);
             if (higgs.size() == 2)
             {
-                if (abs((higgs[0] + higgs[1]).m() - 125) < 20)
+                if ((higgs[0] + higgs[1]).pt() > 150 && abs((higgs[0] + higgs[1]).m() - 125) < 20)
                 {
                     n += 1;
-                } 
+                }
+                
             }
         }
         
