@@ -281,9 +281,9 @@ int main(int argc, char *argv[])
         if(trigger(branchJet))
         {
             finalState = getFinalState(branchTower);
-            BoostedHiggs tagger(finalState);
+            /* BoostedHiggs tagger(finalState);
             tagger.findFatJet();
-            cout << (tagger.fatJet).size() << endl;
+            cout << (tagger.fatJet).size() << endl; */
         }
         
     }
