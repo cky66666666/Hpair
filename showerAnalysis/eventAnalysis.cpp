@@ -98,164 +98,6 @@ vector<GenParticle*> getParton(TClonesArray *branchParticle)
     return parton;
 }
 
-vector<PseudoJet> getRemainConst(vector<PseudoJet> finalState, vector<PseudoJet> boostHiggs)
-{
-
-}
-
-double deltaR(PseudoJet j1, PseudoJet j2)
-{
-    TLorentzVector p1, p2;
-    p1.SetPxPyPzE(j1.px(), j1.py(), j1.pz(), j1.e());
-    p2.SetPxPyPzE(j2.px(), j2.py(), j2.pz(), j2.e());
-    return p1.DeltaR(p2);
-}
-
-int flavourAssociation(PseudoJet jet, vector<GenParticle*> parton)
-{
-    int flavour = -1;
-    double deltaR = 0.5;
-    TLorentzVector pJet;
-    pJet.SetPxPyPzE(jet.px(), jet.py(), jet.pz(), jet.e());
-    for (int i = 0; i < parton.size(); i++)
-    {
-        int pid = abs(parton[i]->PID);
-        if (pid == 21) pid = 0;
-        if (pJet.DeltaR(parton[i]->P4()) < deltaR && pid > flavour)
-        {
-            flavour = pid;
-        }
-    }
-    return flavour;
-}
-
-vector<PseudoJet> findBoostHiggs(vector<vector<PseudoJet>> higgsCandidate, vector<GenParticle*> parton)
-{
-    double deltaInvMass, mH = 125.0, tmp;
-    vector<PseudoJet> candidate = {}, boostHiggs;
-    TLorentzVector p1, p2;
-    //cout << "higgs" << " " << higgsCandidate.size() << endl;
-    deltaInvMass = 1000;
-    for (int i = 0; i < higgsCandidate.size(); i++)
-    {
-        tmp = 1000;
-        for (int j = 0; j < higgsCandidate[i].size(); j++)
-        {
-            for (int k = j + 1; k < higgsCandidate[i].size(); k++)
-            {
-                p1.SetPxPyPzE(higgsCandidate[i][j].px(), higgsCandidate[i][j].py(), higgsCandidate[i][j].pz(), higgsCandidate[i][j].e());
-                p2.SetPxPyPzE(higgsCandidate[i][k].px(), higgsCandidate[i][k].py(), higgsCandidate[i][k].pz(), higgsCandidate[i][k].e());
-                p1 = p1 + p2;
-                if (abs(p1.M() - mH) < tmp )
-                {
-                    tmp = abs(p1.M() - mH);
-                    candidate = {higgsCandidate[i][j], higgsCandidate[i][k]}; 
-                }
-                
-            }
-            
-        }
-        if (candidate.size() < 2) continue;
-        if (flavourAssociation(candidate[0], parton) == 5 && flavourAssociation(candidate[1], parton) == 5)
-        {
-            if (tmp < deltaInvMass)
-            {
-                deltaInvMass = tmp;
-                boostHiggs = candidate;
-            }
-            
-        }
-        
-    }
-    return boostHiggs;
-}
-
-vector<PseudoJet> boostHiggsTagger(vector<PseudoJet> finalState, vector<GenParticle*> parton)
-{
-    ClusterSequence *sequence = new ClusterSequence(finalState, JetDefinition(cambridge_algorithm, 1.5));
-    vector<PseudoJet> fatjet = sorted_by_pt(sequence->inclusive_jets(150.0));
-    vector<PseudoJet> mother, subStructure, tmp;
-    vector<PseudoJet>::iterator itMother;
-    PseudoJet parent1, parent2;
-    
-    if (fatjet.size() > 0)
-    {
-        if (fatjet[0].m() > 110)
-        {
-            mother = {fatjet[0]};
-        }
-        else
-        {
-            return {};
-        }
-    }
-    else
-    {
-        return {};
-    }
-    
-    while (mother.size() > 0)
-    {
-        for (itMother = mother.begin(); itMother != mother.end(); ++itMother)
-        {
-            if (!(*itMother).has_parents(parent1, parent2)) continue;
-            if (parent1.m() > parent2.m() && parent1.m() > 0.8 * (*itMother).m())
-            {
-                tmp.push_back(parent1);
-            }
-            else if (parent2.m() > parent1.m() && parent2.m() > 0.8 * (*itMother).m())
-            {
-                tmp.push_back(parent2);
-            }
-            else
-            {
-                tmp.push_back(parent1);
-                tmp.push_back(parent2);
-            }
-        }
-        mother.clear();
-        for (int i = 0; i < tmp.size(); i++)
-        {
-            if (tmp[i].m() < 30)
-            {
-                subStructure.push_back(tmp[i]);
-            }
-            else
-            {
-                mother.push_back(tmp[i]);
-            }
-            
-        }
-        tmp.clear();
-    }
-    //cout << "subs" << " " << subStructure.size() << endl;
-    int nJet = subStructure.size();
-    double delta;
-    vector<PseudoJet> combiedJet, constituent1, constituent2;
-    vector<vector<PseudoJet>> higgsCandidate;
-    ClusterSequence *filter;
-    for (int i = 0; i < nJet; i++)
-    {
-        for (int j = i + 1; j < nJet; j++)
-        {
-            constituent1 = subStructure[i].constituents();
-            constituent2 = subStructure[j].constituents();
-            combiedJet.reserve(constituent1.size() + constituent2.size());
-            combiedJet.insert(combiedJet.end(), constituent1.begin(), constituent1.end());
-            combiedJet.insert(combiedJet.end(), constituent2.begin(), constituent2.end());
-
-            delta = min(0.3, deltaR(subStructure[i], subStructure[j]));
-            filter = new ClusterSequence(combiedJet, JetDefinition(cambridge_algorithm, delta));
-            tmp = sorted_by_pt(filter->inclusive_jets());
-            if (tmp.size() >= 3)
-            {
-                higgsCandidate.push_back({tmp[0], tmp[1], tmp[2]});
-            }
-        }
-    }
-    return findBoostHiggs(higgsCandidate, parton);
-}
-
 
 int main(int argc, char *argv[])
 {
@@ -270,24 +112,33 @@ int main(int argc, char *argv[])
     TClonesArray *branchTower = treeReader->UseBranch("Tower");
 
 
-    vector<PseudoJet> finalState, boostHiggs;
+    vector<PseudoJet> finalState;
     vector<GenParticle*> parton;
 
     int nEvent = treeReader->GetEntries();
-    int n = 0;
+    int n = 0, m = 0;
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
         if(trigger(branchJet))
         {
             finalState = getFinalState(branchTower);
-            /* BoostedHiggs tagger(finalState);
-            tagger.findFatJet();
-            cout << (tagger.fatJet).size() << endl; */
+            parton = getParton(branchParticle);
+            BoostedHiggs *boostedHiggs = new BoostedHiggs(finalState, parton, 150, 110, 1.5, 0.3);
+            boostedHiggs->process();
+            if ((boostedHiggs->boostedHiggs).size() >= 2)
+            {
+                if (((boostedHiggs->boostedHiggs)[0] + (boostedHiggs->boostedHiggs)[1]).pt() > 150)
+                {
+                    m += 1;
+                }
+            }
+            
+            
+            delete boostedHiggs;
         }
-        
     }
-    cout << n << endl;
+    cout << "mHiggs" << m << endl;
     /* TClonesArray *branchJet = treeReader->UseBranch("Jet");
     TClonesArray *branchParticle = treeReader->UseBranch("Particle");
     treeReader->ReadEntry(1);

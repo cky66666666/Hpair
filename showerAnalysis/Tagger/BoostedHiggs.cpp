@@ -67,7 +67,7 @@ int BoostedHiggs::flavourAssociation(PseudoJet jet)
 
 void BoostedHiggs::declusterFatJet()
 {
-    fatSequence = new ClusterSequence(this->finalState, JetDefinition(cambridge_algorithm, fatJetR));
+    fatSequence = new ClusterSequence(finalState, JetDefinition(cambridge_algorithm, fatJetR));
     fatJet= sorted_by_pt(fatSequence->inclusive_jets(fatJetMinPt));
 
     vector<PseudoJet> mother, tmp;
@@ -76,7 +76,7 @@ void BoostedHiggs::declusterFatJet()
 
     if (fatJet.size() > 0)
     {
-        if (fatJet[0].m() > 110)
+        if (fatJet[0].m() > fatJetMinMass)
         {
             mother = {fatJet[0]};
         }
@@ -143,7 +143,7 @@ void BoostedHiggs::getHiggsCandidate()
             combiedJet.insert(combiedJet.end(), constituent1.begin(), constituent1.end());
             combiedJet.insert(combiedJet.end(), constituent2.begin(), constituent2.end());
 
-            deltaR = min(fatSubStructureR, deltaRCalc(fatSubStructure[i], fatSubStructure[j]));
+            deltaR = min(fatSubStructureR, deltaRCalc(fatSubStructure[i], fatSubStructure[j]) / 2);
             filter = new ClusterSequence(combiedJet, JetDefinition(cambridge_algorithm, deltaR));
             tmp = sorted_by_pt(filter->inclusive_jets());
             
@@ -160,6 +160,7 @@ void BoostedHiggs::findBoostedHiggs()
     double deltaInvMass = 1000, mH = 125;
     vector<PseudoJet> candidate;
     vector<vector<PseudoJet>> constituent;
+    boostedHiggs = {};
     for (int i = 0; i < higgsCandidateList.size(); i++)
     {
         double tmp = 1000;
@@ -169,7 +170,7 @@ void BoostedHiggs::findBoostedHiggs()
             {
                 if (abs((higgsCandidateList[i].candJet[j] + higgsCandidateList[i].candJet[k]).m() - mH) < tmp)
                 {
-                    tmp = abs((higgsCandidateList[i].candJet[j] + higgsCandidateList[i].candJet[k]).m());
+                    tmp = abs((higgsCandidateList[i].candJet[j] + higgsCandidateList[i].candJet[k]).m() - mH);
                     candidate = {higgsCandidateList[i].candJet[j], higgsCandidateList[i].candJet[k]};
                     constituent = {higgsCandidateList[i].candConstituent[j], higgsCandidateList[i].candConstituent[k]};
                 }
@@ -180,8 +181,9 @@ void BoostedHiggs::findBoostedHiggs()
         if (candidate.size() < 2) continue;
         if (flavourAssociation(candidate[0]) == 5 && flavourAssociation(candidate[1]) == 5)
         {
-            if (abs((candidate[0] + candidate[1]).m() - 125) < deltaInvMass)
+            if (abs((candidate[0] + candidate[1]).m() - mH) < deltaInvMass)
             {
+                deltaInvMass = abs((candidate[0] + candidate[1]).m() - 125);
                 boostedHiggs = candidate;
                 higgsConstituent = {};
                 higgsConstituent.reserve(constituent[0].size() + constituent[1].size());
@@ -193,4 +195,31 @@ void BoostedHiggs::findBoostedHiggs()
         
     }
     
+}
+
+void BoostedHiggs::getRemmant()
+{
+    remmant = finalState;
+    int n = higgsConstituent.size();
+    vector<PseudoJet>::iterator itRemmant;
+    for (itRemmant = remmant.begin(); itRemmant != remmant.end(); itRemmant++)
+    {
+        for (int i = 0; i < n; i++)
+        {
+            if ((*itRemmant).user_index() == higgsConstituent[i].user_index())
+            {
+                remmant.erase(itRemmant);
+                itRemmant--;
+                break;
+            }
+        }
+    }
+}
+
+void BoostedHiggs::process()
+{
+    declusterFatJet();
+    getHiggsCandidate();
+    findBoostedHiggs();
+    getRemmant();
 }
