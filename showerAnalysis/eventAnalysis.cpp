@@ -98,19 +98,93 @@ vector<GenParticle*> getParton(TClonesArray *branchParticle)
     return parton;
 }
 
+int flavourAssociation(PseudoJet jet, vector<GenParticle*> parton)
+{
+    int flavour = -1;
+    double deltaR = 0.5;
+    TLorentzVector pJet;
+    pJet.SetPxPyPzE(jet.px(), jet.py(), jet.pz(), jet.e());
+    for (int i = 0; i < parton.size(); i++)
+    {
+        int pid = abs(parton[i]->PID);
+        if (pid == 21) pid = 0;
+        if (pJet.DeltaR(parton[i]->P4()) < deltaR && pid > flavour)
+        {
+            flavour = pid;
+        }
+    }
+    return flavour;
+}
+
+vector<TLorentzVector> clusterRemmant(vector<PseudoJet> remmant, vector<GenParticle*> parton)
+{
+    ClusterSequence *sequence = new ClusterSequence(remmant, JetDefinition(antikt_algorithm, 0.4));
+    vector<PseudoJet> remmantJet = sorted_by_pt(sequence->inclusive_jets(30));
+    vector<PseudoJet> allJet = remmantJet;
+    vector<int> higgsIndex = {};
+    TLorentzVector softHiggs, hardJet;
+    softHiggs.SetPxPyPzE(0, 0, 0, 0);
+    hardJet.SetPxPyPzE(0, 0, 0 ,0);
+    double deltaInvMass = 1000;
+
+    int nJet = remmantJet.size();
+    for (int i = 0; i < nJet; i++)
+    {
+        if (flavourAssociation(remmantJet[i], parton) != 5) continue;
+        for (int j = i + 1; j < nJet; j++)
+        {
+            if (flavourAssociation(remmantJet[j], parton) != 5) continue;
+            if (abs((remmantJet[i] + remmantJet[j]).m() - 125) < deltaInvMass)
+            {
+                deltaInvMass = abs((remmantJet[i] + remmantJet[j]).m() - 125);
+                softHiggs.SetPxPyPzE((remmantJet[i] + remmantJet[j]).px(), (remmantJet[i] + remmantJet[j]).py(), (remmantJet[i] + remmantJet[j]).pz(), (remmantJet[i] + remmantJet[j]).e());
+                higgsIndex = {i, j};
+            }
+            
+        }
+        
+    }
+
+    if (higgsIndex.size() == 2)
+    {
+        remmantJet.erase(remmantJet.begin() + higgsIndex[1]);
+        remmantJet.erase(remmantJet.begin() + higgsIndex[0]);
+    }
+
+    if (remmantJet.size() > 0) hardJet.SetPxPyPzE(remmantJet[0].px(), remmantJet[0].py(), remmantJet[0].pz(), remmantJet[0].e());
+    
+
+    return {softHiggs, hardJet};
+}
+
+bool eventSelector(TLorentzVector hardHiggs, vector<TLorentzVector> remmantObject)
+{
+    bool status = true;
+    if (hardHiggs.M() == 0 || remmantObject[0].M() == 0)
+    {
+        status = false;
+    }
+    if (hardHiggs.Pt() < 150 || abs(remmantObject[0].M() - 125) > 10 || remmantObject[1].Pt() < 100)
+    {
+        status = false;
+    }
+    return status;
+}
 
 int main(int argc, char *argv[])
 {
     gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
     
     TChain *chain = new TChain("Delphes");
-    chain->Add("/mnt/d/work/Hpair/events/root/hhj1.root");
+    chain->Add("/mnt/d/work/Hpair/events/root/bkg4b.root");
     ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
     
     TClonesArray *branchJet = treeReader->UseBranch("Jet");
     TClonesArray *branchParticle = treeReader->UseBranch("Particle");
     TClonesArray *branchTower = treeReader->UseBranch("Tower");
 
+    TLorentzVector hardHiggs;
+    vector<TLorentzVector> remmantObject;
 
     vector<PseudoJet> finalState;
     vector<GenParticle*> parton;
@@ -126,15 +200,14 @@ int main(int argc, char *argv[])
             parton = getParton(branchParticle);
             BoostedHiggs *boostedHiggs = new BoostedHiggs(finalState, parton, 150, 110, 1.5, 0.3);
             boostedHiggs->process();
-            if ((boostedHiggs->boostedHiggs).size() >= 2)
+            if ((boostedHiggs->boostedHiggs.size()) < 2) continue;
+            PseudoJet tmp = (boostedHiggs->boostedHiggs)[0] + (boostedHiggs->boostedHiggs)[1];
+            hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
+            remmantObject = clusterRemmant(boostedHiggs->remmant, parton);
+            if (eventSelector(hardHiggs, remmantObject))
             {
-                if (((boostedHiggs->boostedHiggs)[0] + (boostedHiggs->boostedHiggs)[1]).pt() > 150)
-                {
-                    m += 1;
-                }
+                m += 1;
             }
-            
-            
             delete boostedHiggs;
         }
     }

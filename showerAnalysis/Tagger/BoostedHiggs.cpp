@@ -184,7 +184,7 @@ void BoostedHiggs::findBoostedHiggs()
             if (abs((candidate[0] + candidate[1]).m() - mH) < deltaInvMass)
             {
                 deltaInvMass = abs((candidate[0] + candidate[1]).m() - 125);
-                boostedHiggs = candidate;
+                boostedHiggs = {candidate[0], candidate[1]};
                 higgsConstituent = {};
                 higgsConstituent.reserve(constituent[0].size() + constituent[1].size());
                 higgsConstituent.insert(higgsConstituent.end(), constituent[0].begin(), constituent[0].end());

@@ -14,13 +14,17 @@ using namespace std;
 int main(){
     FILE *inputfile;
     TFile *outputfile;
-    outputfile = TFile::Open("../lheEvent.root", "RECREATE");
-    int nTree = 11;
+    outputfile = TFile::Open("../bkg4b.root", "RECREATE");
+    int nTree = 1;
     for (int i = 1; i < nTree + 1; i++)
     {
-        char treeName[10], inputName[50];
+        char treeName[] = "bkg4b", inputName[] = "../../../events/lhe/bkg4b.lhe";
+        
+        /* char treeName[10], inputName[50];
         sprintf(treeName, "LHEF%d", i);
-        sprintf(inputName, "../../../events/lhe/hhj%d.lhe", i);
+        sprintf(inputName, "../../../events/lhe/hhj%d.lhe", i); */
+
+
         cout << i << endl;
         ExRootLHEFReader *reader = new ExRootLHEFReader;
         ExRootTreeWriter *treeWriter = new ExRootTreeWriter(outputfile, treeName);

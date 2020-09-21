@@ -146,8 +146,45 @@ void deltaRFilter(ExRootTreeReader *treeReader){
     cout << n << endl;
 }
 
+bool eventSelector(TRootLHEFParticle *particle)
+{
+    
+}
+
 int main(int argc, char *argv[]){
-    vector<int> nTree = {6, 7, 8, 9, 10};
+
+    char treeName[] = "bkg4b";
+    TChain *chain = new TChain(treeName);
+    chain->Add("../bkg4b.root");
+    ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
+
+    TClonesArray *branchParticle;
+    branchParticle = treeReader->UseBranch("Particle");
+
+    TRootLHEFParticle *particle;
+
+    int nEvent = treeReader->GetEntries();
+    int n = 0;
+    double minPt;
+    cout << nEvent << endl;
+    for (int iEvent = 0; iEvent < nEvent; iEvent++)
+    {
+        treeReader->ReadEntry(iEvent);
+        for (int iParticle = 0; iParticle < branchParticle->GetEntriesFast(); iParticle++)
+        {
+            particle = (TRootLHEFParticle*) branchParticle->At(iParticle);
+            if ((particle->Status == 1) /* && (abs(particle->PID) != 5) */ && (particle->PT > 100))
+            {
+                n += 1;
+            }
+            
+        }
+        
+    }
+    
+    cout << n << endl;
+
+    /* vector<int> nTree = {6, 7, 8, 9, 10};
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
     for (int i = 0; i < nTree.size(); i++)
     {
@@ -157,20 +194,10 @@ int main(int argc, char *argv[]){
         chain->Add(argv[1]);
         ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
         stackInvMass->Add(drawHist(treeReader, nTree[i]));
-    }
-    
-    /* TClonesArray *branchParticles = treeReader->UseBranch("Particle");
-    treeReader->ReadEntry(10);
-    TRootLHEFParticle *particle;
-    for (int i = 0; i < branchParticles->GetEntries(); i++)
-    {
-        particle = (TRootLHEFParticle*) branchParticles->At(i);
-        cout << particle->PID << " " << particle->Mother1 << endl;
-        cout << particle->PID << " " << particle->Mother2 << endl;
-    }
-    drawHist(treeReader); */
-    TFile f("../hist.root", "RECREATE");
+    } */
+
+    /* TFile f("../hist.root", "RECREATE");
     stackInvMass->Write();
-    f.Close();
+    f.Close(); */
     return 0;
 }

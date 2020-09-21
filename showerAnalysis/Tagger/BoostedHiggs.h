@@ -30,7 +30,6 @@ public:
     int flavourAssociation(fastjet::PseudoJet);
 
     std::vector<fastjet::PseudoJet> higgsConstituent, fatJet, remmant, boostedHiggs;
-    TLorentzVector *momentum;
     double fatJetMinPt, fatJetMinMass, fatJetR, fatSubStructureR;
 
 private:
