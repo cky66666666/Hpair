@@ -164,7 +164,7 @@ bool eventSelector(TLorentzVector hardHiggs, vector<TLorentzVector> remmantObjec
     {
         status = false;
     }
-    if (hardHiggs.Pt() < 150 || abs(remmantObject[0].M() - 125) > 10 || remmantObject[1].Pt() < 100)
+    if (hardHiggs.Pt() < 150 || abs(remmantObject[0].M() - 125) > 10 || remmantObject[1].Pt() < 200)
     {
         status = false;
     }

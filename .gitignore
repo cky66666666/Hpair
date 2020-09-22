@@ -3,4 +3,6 @@
 /partonAnalysis/bkg4b.root
 /partonAnalysis/hist.root
 /showerAnalysis/build
+/showerAnalysis/a.out
+/showerAnalysis/rubbishCode.cpp
 /.vscode
