@@ -1,29 +1,28 @@
 #include <vector>
 #include "iostream"
+#include <omp.h>
 
 using namespace std;
 
-void test()
-{
-    vector<double> a = {1,2,3};
-    vector<double>::iterator itA;
-    for (itA = a.begin(); itA != a.end() && itA != a.end() + 1; ++itA)
-    {
-        cout << a.size() << endl;
-        if (*itA == 3)
-        {
-            a.erase(itA);
-        }
-    }
-    cout << a.size() << endl;
-    //cout << *itA << endl;
-}
 
 int main()
 {
-    for (int i = 0; i < 3; i++)
+    vector<double> test = {};
+
+    omp_set_num_threads(8);
+
+    int n = 0;
+
+    for (int i = 0; i < 10; i++)
     {
-        test();
+        #pragma omp parallel for
+        for (int j = 0; j < 10000; j++)
+        {
+        //#pragma omp critical
+            n += 1;
+        }
+        
     }
-       
+
+    cout << n << endl;
 }

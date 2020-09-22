@@ -1,12 +1,14 @@
 #include "TChain.h"
 #include "TClonesArray.h"
 #include "TH1D.h"
+#include "THStack.h"
 #include "TLorentzVector.h"
 #include "TSystem.h"
 #include "TObject.h"
 
 #include "iostream"
 #include "vector"
+#include <omp.h>
 
 #include "ExRootAnalysis/ExRootTreeReader.h"
 #include "classes/DelphesClasses.h"
@@ -164,73 +166,85 @@ bool eventSelector(TLorentzVector hardHiggs, vector<TLorentzVector> remmantObjec
     {
         status = false;
     }
-    if (hardHiggs.Pt() < 150 || abs(remmantObject[0].M() - 125) > 10 || remmantObject[1].Pt() < 200)
+    if (hardHiggs.Pt() < 150 || abs(remmantObject[0].M() - 125) > 10 || remmantObject[1].Pt() < 100)
     {
         status = false;
     }
     return status;
 }
 
+TH1D* drawHist(vector<double> data, int histName)
+{
+    char name[20];
+    sprintf(name, "KappaLam=%d", histName);
+    TH1D *hist = new TH1D(name, name, 50, 250, 1000);
+    for (int i = 0; i < data.size(); i++)
+    {
+        hist->Fill(data[i]);
+    }
+    return hist;
+}
+
 int main(int argc, char *argv[])
 {
     gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
     
-    TChain *chain = new TChain("Delphes");
-    chain->Add("/mnt/d/work/Hpair/events/root/bkg4b.root");
-    ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-    
-    TClonesArray *branchJet = treeReader->UseBranch("Jet");
-    TClonesArray *branchParticle = treeReader->UseBranch("Particle");
-    TClonesArray *branchTower = treeReader->UseBranch("Tower");
+    THStack *stack = new THStack("InvMass", "InvMass");
+    TFile *f = new TFile("hist.root", "RECREATE");
+    vector<int> fileNameList = {1, 6, 7};
 
-    TLorentzVector hardHiggs;
-    vector<TLorentzVector> remmantObject;
+    //omp_set_num_threads(8);
 
-    vector<PseudoJet> finalState;
-    vector<GenParticle*> parton;
-
-    int nEvent = treeReader->GetEntries();
-    int n = 0, m = 0;
-    for (int iEvent = 0; iEvent < nEvent; iEvent++)
+    for (int i = 0; i < fileNameList.size(); i++)
     {
-        treeReader->ReadEntry(iEvent);
-        if(trigger(branchJet))
+        TChain *chain = new TChain("Delphes");
+        char directory[100];
+        sprintf(directory, "/mnt/d/work/Hpair/events/root/hhj%d.root", fileNameList[i]);
+        chain->Add(directory);
+        ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
+        
+        TClonesArray *branchJet = treeReader->UseBranch("Jet");
+        TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+        TClonesArray *branchTower = treeReader->UseBranch("Tower");
+
+        TLorentzVector hardHiggs;
+        vector<TLorentzVector> remmantObject;
+
+        vector<PseudoJet> finalState;
+        vector<GenParticle*> parton;
+        vector<double> invMass;
+
+        int nEvent = treeReader->GetEntries();
+        int n = 0, m = 0;
+
+        for (int iEvent = 0; iEvent < nEvent; iEvent++)
         {
-            finalState = getFinalState(branchTower);
-            parton = getParton(branchParticle);
-            BoostedHiggs *boostedHiggs = new BoostedHiggs(finalState, parton, 150, 110, 1.5, 0.3);
-            boostedHiggs->process();
-            if ((boostedHiggs->boostedHiggs.size()) < 2) continue;
-            PseudoJet tmp = (boostedHiggs->boostedHiggs)[0] + (boostedHiggs->boostedHiggs)[1];
-            hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
-            remmantObject = clusterRemmant(boostedHiggs->remmant, parton);
-            if (eventSelector(hardHiggs, remmantObject))
+            treeReader->ReadEntry(iEvent);
+            if(trigger(branchJet))
             {
-                m += 1;
+                finalState = getFinalState(branchTower);
+                parton = getParton(branchParticle);
+
+                BoostedHiggs *boostedHiggs = new BoostedHiggs(finalState, parton, 150, 110, 1.5, 0.3);
+                boostedHiggs->process();
+                if ((boostedHiggs->boostedHiggs.size()) < 2) continue;
+                PseudoJet tmp = (boostedHiggs->boostedHiggs)[0] + (boostedHiggs->boostedHiggs)[1];
+                hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
+                remmantObject = clusterRemmant(boostedHiggs->remmant, parton);
+
+                // remmantObject[0]: soft higgs, remmantObject[1]: hard jet
+                if (eventSelector(hardHiggs, remmantObject))
+                {
+                    #pragma omp critical
+                    invMass.push_back((hardHiggs + remmantObject[0]).M());
+                }
+                delete boostedHiggs;
             }
-            delete boostedHiggs;
         }
+        stack->Add(drawHist(invMass, fileNameList[i]));
+        invMass.clear();
     }
-    cout << "mHiggs" << m << endl;
-    /* TClonesArray *branchJet = treeReader->UseBranch("Jet");
-    TClonesArray *branchParticle = treeReader->UseBranch("Particle");
-    treeReader->ReadEntry(1);
-    Jet *jet;
-    GenParticle *particle;
-    int n = 0;
-    for (int i = 0; i < branchJet->GetEntries(); i++)
-    {
-        jet = (Jet*) branchJet->At(i);
-        cout << jet->IsTotalParticle << endl;
-        if (jet->IsTotalParticle)
-        {
-            cout << (jet->Constituents).GetEntries() << endl;
-        }
-        else
-        {
-            n += (jet->Constituents).GetEntries();
-        }
-    }
-    cout << n << endl; */
+    stack->Write();
+    f->Close();
     return 0;
 }
