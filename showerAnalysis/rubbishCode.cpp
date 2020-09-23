@@ -18,8 +18,7 @@ int main()
         #pragma omp parallel for
         for (int j = 0; j < 10000; j++)
         {
-        //#pragma omp critical
-            n += 1;
+            int n = j;
         }
         
     }

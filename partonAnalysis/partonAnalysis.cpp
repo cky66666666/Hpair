@@ -11,6 +11,9 @@
 
 using namespace std;
 
+extern double higgsPt = 0;
+
+
 vector<TRootLHEFParticle*> findParticles(TClonesArray *branchParticles){
     vector<TRootLHEFParticle*> particleList;
     TRootLHEFParticle *particle;
@@ -71,15 +74,14 @@ TH1D* drawHist(ExRootTreeReader *treeReader, int legend){
     TClonesArray *branchParticles = treeReader->UseBranch("Particle");
     TRootLHEFParticle *particle;
     vector<TLorentzVector> higgs;
-    TLorentzVector pHiggsPair, tmp;
-    int maxPtPoint, minPtPoint;
+    TLorentzVector tmp;
+    int maxPtPoint, minPtPoint, n = 0;
     char histName[10];
     sprintf(histName, "deltaLam=%d", legend - 6);
     TH1D *histInvMass = new TH1D(histName, histName, 50, 250, 1000);
     for (int iEvent = 0; iEvent < treeReader->GetEntries(); iEvent++)
     {
         treeReader->ReadEntry(iEvent);
-        pHiggsPair.SetPxPyPzE(0, 0, 0, 0);
         for (int iParticle = 0; iParticle < branchParticles->GetEntries(); iParticle++)
         {
             particle = (TRootLHEFParticle*) branchParticles->At(iParticle);
@@ -90,101 +92,86 @@ TH1D* drawHist(ExRootTreeReader *treeReader, int legend){
             }
         }
         //int maxPoint = maxPt(higgs);
-        histInvMass->Fill((higgs[0] + higgs[1]).M());
+        if (higgs.size() < 2) continue;
+        if (higgs[0].Pt() > higgsPt && higgs[1].Pt() > higgsPt)
+        {
+           histInvMass->Fill((higgs[0] + higgs[1]).M());
+           n += 1;
+        }
         higgs.clear();
     }
+    cout << n << endl;
     return histInvMass;
 }
 
-TLorentzVector hardHiggsMomentum(TClonesArray *branchParticle){
-    TLorentzVector pHard;
-    TRootLHEFParticle *particle;
-    pHard.SetPxPyPzE(0, 0, 0, 0);
-    for (int i = 0; i < branchParticle->GetEntries(); i++)
-    {
-        particle = (TRootLHEFParticle*) branchParticle->At(i);
-        if (particle->PID == 25 && (particle->E) > pHard.E())
-        {
-            pHard.SetPxPyPzE(particle->Px, particle->Py, particle->Pz, particle->E);
-        }
-    }
-    return pHard;
-}
+vector<TLorentzVector> findHiggs(vector<TLorentzVector> higgsCand)
+{
+    TLorentzVector h1, h2;
+    vector<TLorentzVector> tmp;
+    h1.SetPxPyPzE(0, 0, 0, 0);
+    h2.SetPxPyPzE(0, 0, 0, 0);
 
-void deltaRFilter(ExRootTreeReader *treeReader){
-    TClonesArray *branchParticle = treeReader->UseBranch("Particle");
-    TLorentzVector pHiggs, partonMomentum;
-    vector<TRootLHEFParticle*> candidate;
-    int n = 0;
-    for (int iEvent = 0; iEvent < treeReader->GetEntries(); iEvent++)
+    if (higgsCand.size() < 4) return {h1, h2};
+
+    for (int i = 0; i < higgsCand.size(); i++)
     {
-        treeReader->ReadEntry(iEvent);
-        pHiggs = hardHiggsMomentum(branchParticle);
-        for (int iParticle = 0; iParticle < branchParticle->GetEntries(); iParticle++)
+        for (int j = i + 1; j < higgsCand.size(); j++)
         {
-            TRootLHEFParticle *particle = (TRootLHEFParticle*) branchParticle->At(iParticle);
-            if (particle->Status == 1)
+            tmp = higgsCand;
+            tmp.erase(tmp.begin() + j);
+            tmp.erase(tmp.begin() + i);
+            if (abs((higgsCand[i] + higgsCand[j]).M() - 125) < 20 && abs((tmp[0] + tmp[1]).M() - 125) < 20)
             {
-                partonMomentum.SetPxPyPzE(particle->Px, particle->Py, particle->Pz, particle->E);
-                if (pHiggs.DeltaR(partonMomentum) < 1.5)
-                {
-                    candidate.push_back(particle);
-                }
-            }
-        }
-        for (int i = 0; i < candidate.size(); i++)
-        {
-            if (abs(candidate[i]->PID) != 5)
-            {
-                n += 1;
+                h1 = higgsCand[i] + higgsCand[j];
+                h2 = tmp[0] + tmp[1];
+                i = 100;
+                j = 100;
             }
             
         }
         
-        candidate.clear();
     }
-    cout << n << endl;
-}
-
-bool eventSelector(TRootLHEFParticle *particle)
-{
     
+    return {h1, h2};
 }
 
-int main(int argc, char *argv[]){
-
-    char treeName[] = "bkg4b";
-    TChain *chain = new TChain(treeName);
-    chain->Add("../bkg4b.root");
-    ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-
-    TClonesArray *branchParticle;
-    branchParticle = treeReader->UseBranch("Particle");
-
+TH1D* analyzeBkg(ExRootTreeReader *treeReader)
+{
+    TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+    int nEvent = treeReader->GetEntries(), n = 0;
     TRootLHEFParticle *particle;
+    vector<TLorentzVector> higgsCand, higgs;
+    TLorentzVector pb;
+    TH1D *histBkg = new TH1D("bkg", "bkg", 50, 250, 1000);
 
-    int nEvent = treeReader->GetEntries();
-    int n = 0;
-    double minPt;
-    cout << nEvent << endl;
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
-        for (int iParticle = 0; iParticle < branchParticle->GetEntriesFast(); iParticle++)
+        for (int i = 0; i < branchParticle->GetEntriesFast(); i++)
         {
-            particle = (TRootLHEFParticle*) branchParticle->At(iParticle);
-            if ((particle->Status == 1) /* && (abs(particle->PID) != 5) */ && (particle->PT > 100))
+            particle = (TRootLHEFParticle*) branchParticle->At(i);
+            if (abs(particle->PID) == 5)
             {
-                n += 1;
+                pb.SetPxPyPzE(particle->Px, particle->Py, particle->Pz, particle->E);
+                higgsCand.push_back(pb);
             }
-            
         }
         
+        higgs = findHiggs(higgsCand);
+        if (higgs[0].Pt() > higgsPt && higgs[1].Pt() > higgsPt)
+        {
+            histBkg->Fill((higgs[0] + higgs[1]).M());
+            n += 1;
+        }
+        higgsCand.clear();
     }
     
     cout << n << endl;
+    return histBkg;
+}
 
-    /* vector<int> nTree = {6, 7, 8, 9, 10};
+int main(int argc, char *argv[]){
+    vector<int> nTree = {6, 7, 8, 9, 10};
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
     for (int i = 0; i < nTree.size(); i++)
     {
@@ -194,10 +181,18 @@ int main(int argc, char *argv[]){
         chain->Add(argv[1]);
         ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
         stackInvMass->Add(drawHist(treeReader, nTree[i]));
-    } */
+        delete chain;
+        delete treeReader;
+    } 
 
-    /* TFile f("../hist.root", "RECREATE");
+    char bkg[] = "bkg4b";
+    TChain *chain = new TChain(bkg);
+    chain->Add("../bkg4b.root");
+    ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
+    stackInvMass->Add(analyzeBkg(treeReader));
+
+    TFile f("../hist.root", "RECREATE");
     stackInvMass->Write();
-    f.Close(); */
+    f.Close();
     return 0;
 }

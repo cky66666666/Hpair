@@ -8,7 +8,6 @@
 
 #include "iostream"
 #include "vector"
-#include <omp.h>
 
 #include "ExRootAnalysis/ExRootTreeReader.h"
 #include "classes/DelphesClasses.h"
@@ -166,7 +165,7 @@ bool eventSelector(TLorentzVector hardHiggs, vector<TLorentzVector> remmantObjec
     {
         status = false;
     }
-    if (hardHiggs.Pt() < 150 || abs(remmantObject[0].M() - 125) > 10 || remmantObject[1].Pt() < 100)
+    if (hardHiggs.Pt() < 100 || abs(remmantObject[0].M() - 125) > 20 || remmantObject[1].Pt() < 150)
     {
         status = false;
     }
@@ -176,8 +175,8 @@ bool eventSelector(TLorentzVector hardHiggs, vector<TLorentzVector> remmantObjec
 TH1D* drawHist(vector<double> data, int histName)
 {
     char name[20];
-    sprintf(name, "KappaLam=%d", histName);
-    TH1D *hist = new TH1D(name, name, 50, 250, 1000);
+    sprintf(name, "KappaLam=%d", histName - 6);
+    TH1D *hist = new TH1D(name, name, 50, 0, 1000);
     for (int i = 0; i < data.size(); i++)
     {
         hist->Fill(data[i]);
@@ -189,13 +188,34 @@ int main(int argc, char *argv[])
 {
     gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
     
-    THStack *stack = new THStack("InvMass", "InvMass");
-    TFile *f = new TFile("hist.root", "RECREATE");
-    vector<int> fileNameList = {1, 6, 7};
+    //THStack *stack = new THStack("InvMass", "InvMass");
+    //TFile *f = new TFile("hist.root", "RECREATE");
+    vector<int> fileNameList = {1, 6, 8};
 
-    //omp_set_num_threads(8);
 
     for (int i = 0; i < fileNameList.size(); i++)
+    {
+        TChain *chain = new TChain("Delphes");
+        char directory[100];
+        sprintf(directory, "/mnt/d/work/Hpair/events/root/hhj%d.root", fileNameList[i]);
+        chain->Add(directory);
+        ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
+        TClonesArray *branchJet = treeReader->UseBranch("Jet");
+
+        for (int i = 0; i < treeReader->GetEntries(); i++)
+        {
+            treeReader->ReadEntry(i);
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    /* for (int i = 0; i < fileNameList.size(); i++)
     {
         TChain *chain = new TChain("Delphes");
         char directory[100];
@@ -216,7 +236,7 @@ int main(int argc, char *argv[])
 
         int nEvent = treeReader->GetEntries();
         int n = 0, m = 0;
-
+        
         for (int iEvent = 0; iEvent < nEvent; iEvent++)
         {
             treeReader->ReadEntry(iEvent);
@@ -225,7 +245,7 @@ int main(int argc, char *argv[])
                 finalState = getFinalState(branchTower);
                 parton = getParton(branchParticle);
 
-                BoostedHiggs *boostedHiggs = new BoostedHiggs(finalState, parton, 150, 110, 1.5, 0.3);
+                BoostedHiggs *boostedHiggs = new BoostedHiggs(finalState, parton, 100, 110, 1.5, 0.3);
                 boostedHiggs->process();
                 if ((boostedHiggs->boostedHiggs.size()) < 2) continue;
                 PseudoJet tmp = (boostedHiggs->boostedHiggs)[0] + (boostedHiggs->boostedHiggs)[1];
@@ -235,16 +255,19 @@ int main(int argc, char *argv[])
                 // remmantObject[0]: soft higgs, remmantObject[1]: hard jet
                 if (eventSelector(hardHiggs, remmantObject))
                 {
-                    #pragma omp critical
                     invMass.push_back((hardHiggs + remmantObject[0]).M());
+                    cout << hardHiggs.M() << endl;
+                    cout << remmantObject[0].M() << endl;
                 }
                 delete boostedHiggs;
             }
         }
+        cout << invMass.size() << endl;
         stack->Add(drawHist(invMass, fileNameList[i]));
         invMass.clear();
+        
     }
     stack->Write();
-    f->Close();
+    f->Close(); */
     return 0;
 }
