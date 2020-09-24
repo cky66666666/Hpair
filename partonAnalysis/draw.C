@@ -2,6 +2,7 @@
 #include "TH1D.h"
 #include "THStack.h"
 #include "TFile.h"
+#include "TStyle.h"
 
 void draw()
 {

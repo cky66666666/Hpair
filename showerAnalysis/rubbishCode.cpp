@@ -1,6 +1,7 @@
 #include <vector>
 #include "iostream"
-#include <omp.h>
+#include "TH1D.h"
+#include "fastjet/ClusterSequence.hh"
 
 using namespace std;
 
@@ -8,17 +9,15 @@ using namespace std;
 int main()
 {
     vector<double> test = {};
-
-    omp_set_num_threads(8);
-
+    TH1D *hist = new TH1D("a", "a", 50, 0, 10000);
+    fastjet::ClusterSequence *sequence;
     int n = 0;
 
     for (int i = 0; i < 10; i++)
     {
-        #pragma omp parallel for
         for (int j = 0; j < 10000; j++)
         {
-            int n = j;
+            hist->Fill(j);
         }
         
     }
