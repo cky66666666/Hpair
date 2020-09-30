@@ -1,5 +1,5 @@
 #!/bin/bash
-lhepath=/mnt/c/Users/CHAIKANGYU/Desktop/MG5_aMC_v2_6_6/hhj5/Events
+lhepath=/mnt/d/packages/MG5_aMC_v2_6_7/hhj4bSignal/Events
 destpath=/mnt/d/work/Hpair/events/lhe
 for ((i=1;i<=9;i++))
 do
