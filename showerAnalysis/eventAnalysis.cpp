@@ -225,26 +225,87 @@ bool eventSelector(myEvent event)
     return status;
 }
 
+double analyse4b(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesArray *branchTower, int type)
+{
+    //type=1: single boosted higgs
+    //type=2: double boosted higgs
+    //type=3: collinear higgs pair
+
+    vector<PseudoJet> finalState;
+    vector<GenParticle*> parton;
+    BoostedHiggs *boostedHiggs = new BoostedHiggs();
+
+    PseudoJet tmp;
+    Remmant remmantObject;
+    myEvent event;
+    
+    if(trigger(branchJet))
+    {
+        finalState = getFinalState(branchTower);
+        parton = getParton(branchParticle);
+
+        boostedHiggs->init(finalState, parton, 150, 110, 1.5, 0.3);
+        if (type == 1)
+        {
+            boostedHiggs->process(1);
+            if (boostedHiggs->boostedHiggs.size() < 1)
+            {
+                boostedHiggs->clear();
+                delete boostedHiggs;
+                return 0;
+            }
+            tmp = (boostedHiggs->boostedHiggs)[0];
+            event.hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
+
+            remmantObject = clusterRemmant(boostedHiggs->remmant, parton, 2);
+            event.hardJet = remmantObject.hardJet;
+            event.softHiggs = remmantObject.softHiggs;
+        }
+        else if (type == 2 || type == 3)
+        {
+            boostedHiggs->process(type);
+            if (boostedHiggs->boostedHiggs.size() < 2)
+            {
+                boostedHiggs->clear();
+                delete boostedHiggs;
+                return 0;
+            }
+            tmp = (boostedHiggs->boostedHiggs)[0];
+            event.hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
+            tmp = (boostedHiggs->boostedHiggs)[1];
+            event.softHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
+
+            remmantObject = clusterRemmant(boostedHiggs->remmant, parton, 1);
+            event.hardJet = remmantObject.hardJet;
+        }
+        if (eventSelector(event))
+        {
+            boostedHiggs->clear();
+            delete boostedHiggs;
+            return (event.hardHiggs + event.softHiggs).M();
+            //cout << (event.hardHiggs + event.softHiggs).M() << endl;
+        }
+        else
+        {
+            delete boostedHiggs;
+            return 0;
+        }
+    }
+    else
+    {
+        delete boostedHiggs;
+        return 0;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // Usage: ./eventAnalysis /path/to/hist.root /path/to/inputfile histogram name
 
     gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
-
-    int type = 1;
-    //type=1: single boosted higgs
-    //type=2: double boosted higgs
-    //type=3: collinear higgs pair
     
     TH1D *hist = new TH1D(argv[3], argv[3], 50, 250, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
-
-    vector<double> invMass;
-
-    TLorentzVector hardHiggs;
-
-    vector<PseudoJet> finalState;
-    vector<GenParticle*> parton;
 
     TChain *chain = new TChain("Delphes");
     chain->Add(argv[2]);
@@ -254,55 +315,16 @@ int main(int argc, char *argv[])
     TClonesArray *branchParticle = treeReader->UseBranch("Particle");
     TClonesArray *branchTower = treeReader->UseBranch("Tower");
 
-    BoostedHiggs *boostedHiggs = new BoostedHiggs();
-    PseudoJet tmp;
-    Remmant remmantObject;
-    myEvent event;
     //cout << treeReader->GetEntries() << endl;
     int nEvent = treeReader->GetEntries();
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
         //cout << iEvent << endl;
-        if(trigger(branchJet))
+        double inv = analyse4b(branchJet, branchParticle, branchTower, 1);
+        if (inv != 0)
         {
-            finalState = getFinalState(branchTower);
-            parton = getParton(branchParticle);
-
-            boostedHiggs->init(finalState, parton, 150, 110, 1.5, 0.3);
-            if (type == 1)
-            {
-                boostedHiggs->process(1);
-                if (boostedHiggs->boostedHiggs.size() < 1) continue;
-                tmp = (boostedHiggs->boostedHiggs)[0];
-                event.hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
-
-                remmantObject = clusterRemmant(boostedHiggs->remmant, parton, 2);
-                event.hardJet = remmantObject.hardJet;
-                event.softHiggs = remmantObject.softHiggs;
-            }
-            else if (type == 2 || type == 3)
-            {
-                boostedHiggs->process(type);
-                if (boostedHiggs->boostedHiggs.size() < 2) continue;
-                tmp = (boostedHiggs->boostedHiggs)[0];
-                event.hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
-                tmp = (boostedHiggs->boostedHiggs)[1];
-                event.softHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
-
-                remmantObject = clusterRemmant(boostedHiggs->remmant, parton, 1);
-                event.hardJet = remmantObject.hardJet;
-            }
-            if (eventSelector(event))
-            {
-                hist->Fill((event.hardHiggs + event.softHiggs).M());
-            }
-            boostedHiggs->finish();
-            
-        }
-        if (iEvent % 10000 == 0)
-        {
-            cout << iEvent << " " << "events analysed" << endl;
+            hist->Fill(inv);
         }
         treeReader->Clear();
     }

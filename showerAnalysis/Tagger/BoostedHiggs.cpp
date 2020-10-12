@@ -47,7 +47,7 @@ void BoostedHiggs::init(vector<PseudoJet> finalState, vector<GenParticle*> parto
     higgsConstituent = {};
 }
 
-void BoostedHiggs::finish()
+void BoostedHiggs::clear()
 {
     higgsConstituent.clear();
     fatJet.clear();
@@ -57,6 +57,7 @@ void BoostedHiggs::finish()
     fatSubStructure.clear();
     parton.clear();
     higgsCandidateList.clear();
+    delete fatSequence;
 }
 
 double BoostedHiggs::deltaRCalc(PseudoJet jet1, PseudoJet jet2)
@@ -119,7 +120,7 @@ vector<PseudoJet> BoostedHiggs::combineJet(vector<vector<PseudoJet>> jetList)
 
 void BoostedHiggs::declusterFatJet()
 {
-    ClusterSequence *fatSequence = new ClusterSequence(finalState, JetDefinition(cambridge_algorithm, fatJetR));
+    fatSequence = new ClusterSequence(finalState, JetDefinition(cambridge_algorithm, fatJetR));
     fatJet = sorted_by_pt(fatSequence->inclusive_jets(fatJetMinPt));
 
     vector<PseudoJet> mother = {}, tmp;
@@ -172,8 +173,6 @@ void BoostedHiggs::declusterFatJet()
         }
         tmp.clear();
     }
-
-    delete fatSequence;
 }
 
 vector<PseudoJet> BoostedHiggs::findBoostedHiggs(int nHiggs)

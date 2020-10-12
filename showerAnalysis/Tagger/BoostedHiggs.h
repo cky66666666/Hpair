@@ -21,7 +21,7 @@ public:
     ~BoostedHiggs();
 
     void init(std::vector<fastjet::PseudoJet>, std::vector<GenParticle*>, double, double, double, double);
-    void finish();
+    void clear();
 
     void declusterFatJet();
     void getHiggsCandidate();
@@ -37,6 +37,7 @@ public:
     double fatJetMinPt, fatJetMinMass, fatJetR, fatSubStructureR;
 
 private:
+    fastjet::ClusterSequence *fatSequence;
     std::vector<fastjet::PseudoJet> finalState, fatSubStructure, higgsConstituent, fatJet;
     std::vector<GenParticle*> parton;
     std::vector<HiggsCandidate> higgsCandidateList;
