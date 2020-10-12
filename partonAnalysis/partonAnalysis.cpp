@@ -11,8 +11,8 @@
 
 using namespace std;
 
-extern double higgsPt = 0;
-extern double jetPt = 300;
+extern double higgsPt = 150;
+extern double jetPt = 100;
 
 
 vector<TRootLHEFParticle*> findParticles(TClonesArray *branchParticles){
@@ -53,16 +53,24 @@ TH1D* drawHist(ExRootTreeReader *treeReader, int legend){
         }
         //int maxPoint = maxPt(higgs);
         if (higgs.size() < 2) continue;
-        if (higgs[0].Pt() > higgsPt && higgs[1].Pt() > higgsPt && (higgs[0] + higgs[1]).Pt() > jetPt)
+        if ((higgs[0].Pt() > higgsPt || higgs[1].Pt() > higgsPt) && (higgs[0] + higgs[1]).Pt() > jetPt)
         {
-           histInvMass->Fill(higgs[0].Pt());
-           histInvMass->Fill(higgs[1].Pt());
-           n += 1;
+           /* if (higgs[0].Pt() > higgs[1].Pt())
+           {
+               histInvMass->Fill(higgs[0].Pt());
+           }
+           else
+           {
+               histInvMass->Fill(higgs[1].Pt());
+           } */
+           histInvMass->Fill((higgs[0] + higgs[1]).M());
+           
+           //n += 1;
         }
         //histRH->Fill(higgs[0].DeltaR(higgs[1]));
         higgs.clear();
     }
-    cout << n << endl;
+    //cout << n << endl;
     return histInvMass;
 }
 
@@ -134,7 +142,7 @@ TH1D* analyzeBkg(ExRootTreeReader *treeReader)
 }
 
 int main(int argc, char *argv[]){
-    vector<int> nTree = {6, 7, 8, 9, 10};
+    vector<int> nTree = {6, 11};
     vector<int> nEvent;
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
     for (int i = 0; i < nTree.size(); i++)
@@ -150,11 +158,11 @@ int main(int argc, char *argv[]){
         delete treeReader;
     } 
 
-    char bkg[] = "bkg4b";
+    /* char bkg[] = "bkg4b";
     TChain *chain = new TChain(bkg);
     chain->Add("../bkg4b.root");
     ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-    stackInvMass->Add(analyzeBkg(treeReader));
+    stackInvMass->Add(analyzeBkg(treeReader)); */
     //int nBkg = analyzeBkg(treeReader);
     /* for (int i = 0; i < nEvent.size(); i++)
     {

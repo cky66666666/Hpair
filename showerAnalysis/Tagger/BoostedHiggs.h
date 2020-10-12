@@ -17,26 +17,32 @@ class GenParticle;
 class BoostedHiggs
 {
 public:
-    BoostedHiggs(std::vector<fastjet::PseudoJet>, std::vector<GenParticle*>, double, double, double, double);
+    BoostedHiggs();
     ~BoostedHiggs();
+
+    void init(std::vector<fastjet::PseudoJet>, std::vector<GenParticle*>, double, double, double, double);
+    void finish();
 
     void declusterFatJet();
     void getHiggsCandidate();
-    void findBoostedHiggs();
+    std::vector<fastjet::PseudoJet> findBoostedHiggs(int);
     void getRemmant();
-    void process();
+    
+    void process(int);
 
     double deltaRCalc(fastjet::PseudoJet, fastjet::PseudoJet);
     int flavourAssociation(fastjet::PseudoJet);
 
-    std::vector<fastjet::PseudoJet> higgsConstituent, fatJet, remmant, boostedHiggs;
+    std::vector<fastjet::PseudoJet> remmant, boostedHiggs;
     double fatJetMinPt, fatJetMinMass, fatJetR, fatSubStructureR;
 
 private:
-    fastjet::ClusterSequence *fatSequence;
-    std::vector<fastjet::PseudoJet> finalState, fatSubStructure;
+    std::vector<fastjet::PseudoJet> finalState, fatSubStructure, higgsConstituent, fatJet;
     std::vector<GenParticle*> parton;
     std::vector<HiggsCandidate> higgsCandidateList;
+    
+    bool isHiggs(std::vector<fastjet::PseudoJet>);
+    std::vector<fastjet::PseudoJet> combineJet(std::vector<std::vector<fastjet::PseudoJet>>);
 };
 
 
