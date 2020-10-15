@@ -90,8 +90,20 @@ bool BoostedHiggs::isHiggs(vector<PseudoJet> higgsCandidate)
 {
     // higgsCandidate should be sorted according to pt
     double mH = 125;
+    vector<PseudoJet> bJet, candidate;
     if (higgsCandidate.size() < 3) return false;
-    if (abs(flavourAssociation(higgsCandidate[0])) == 5 && abs(flavourAssociation(higgsCandidate[1])) == 5 && abs((higgsCandidate[0] + higgsCandidate[1] + higgsCandidate[2]).m() - mH) < 20)
+    candidate = {higgsCandidate[0], higgsCandidate[1], higgsCandidate[2]};
+
+    for (int i = 0; i < candidate.size(); i++)
+    {
+        if (flavourAssociation(candidate[i]) == 5)
+        {
+            bJet.push_back(candidate[i]);
+        }
+    }
+
+    if (bJet.size() != 2) return false;
+    if (/* bJet[0].delta_R(bJet[1]) >= 0.4 && */ abs((candidate[0] + candidate[1] + candidate[2]).m() - mH) < 20)
     {
         return true;
     }
@@ -99,6 +111,16 @@ bool BoostedHiggs::isHiggs(vector<PseudoJet> higgsCandidate)
     {
         return false;
     }
+    
+
+    /* if (abs(flavourAssociation(higgsCandidate[0])) == 5 && abs(flavourAssociation(higgsCandidate[1])) == 5 && abs((higgsCandidate[0] + higgsCandidate[1] + higgsCandidate[2]).m() - mH) < 20)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    } */
     
 }
 

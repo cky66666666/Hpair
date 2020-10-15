@@ -1,1 +1,1 @@
-add_library(Tagger BoostedHiggs.cpp)
+add_library(Tagger BoostedHiggs.cpp BAChannel.cpp)

@@ -16,6 +16,7 @@
 #include "fastjet/ClusterSequence.hh"
 
 #include "Tagger/BoostedHiggs.h"
+#include "Tagger/BAChannel.h"
 
 using namespace std;
 using namespace fastjet;
@@ -125,6 +126,56 @@ vector<GenParticle*> getParton(TClonesArray *branchParticle)
     return parton;
 }
 
+vector<TLorentzVector> getObject(TClonesArray *branchObject, int objType)
+{
+    //objType=1:photon
+    //objType=2:electron
+    //objType=3:muon
+
+    int nObj = branchObject->GetEntries();
+    vector<TLorentzVector> object = {};
+    TLorentzVector momentum;
+
+    if (objType == 1)
+    {
+        Photon *photon;
+        for (int i = 0; i < nObj; i++)
+        {
+            photon = (Photon*) branchObject->At(i);
+            momentum.SetPtEtaPhiE(photon->PT, photon->Eta, photon->Phi, photon->E);
+            object.push_back(momentum);
+        }
+        return object;
+    }
+    else if (objType == 2)
+    {
+        Electron *electron;
+        for (int i = 0; i < nObj; i++)
+        {
+            electron = (Electron*) branchObject->At(i);
+            momentum.SetPtEtaPhiM(electron->PT, electron->Eta, electron->Phi, 0);
+            object.push_back(momentum);
+        }
+        return object;
+    }
+    else if (objType == 3)
+    {
+        Muon *muon;
+        for (int i = 0; i < nObj; i++)
+        {
+            muon = (Muon*) branchObject->At(i);
+            momentum.SetPtEtaPhiM(muon->PT, muon->Eta, muon->Phi, 0);
+            object.push_back(momentum);
+        }
+        return object;
+    }
+    else
+    {
+        cout << "error type should be 1 2 or 3" << endl;
+        return {};
+    }
+}
+
 int flavourAssociation(PseudoJet jet, vector<GenParticle*> parton)
 {
     int flavour = -1;
@@ -225,7 +276,7 @@ bool eventSelector(myEvent event)
     return status;
 }
 
-double analyse4b(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesArray *branchTower, int type)
+double analyseBB(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesArray *branchTower, int type)
 {
     //type=1: single boosted higgs
     //type=2: double boosted higgs
@@ -298,6 +349,38 @@ double analyse4b(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesA
     }
 }
 
+double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, TClonesArray *branchMuon)
+{
+    BAChannel *BAEvent = new BAChannel();
+    vector<PseudoJet> finalState;
+    vector<GenParticle*> parton;
+    vector<TLorentzVector> photon, electron, muon;
+    double inv;
+
+    finalState = getFinalState(branchTower);
+    parton = getParton(branchParticle);
+    photon = getObject(branchPhoton, 1);
+    electron = getObject(branchElectron, 2);
+    muon = getObject(branchMuon, 3);
+
+    BAEvent->init(finalState, parton, photon, electron, muon);
+    BAEvent->process();
+
+    if (BAEvent->status && (BAEvent->hardJet).Pt() > 150 && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80)
+    {
+        inv = (BAEvent->higgsFromA + BAEvent->higgsFromB).M();
+        BAEvent->finish();
+        delete BAEvent;
+        return inv;
+    }
+    else
+    {
+        BAEvent->finish();
+        delete BAEvent;
+        return 0;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // Usage: ./eventAnalysis /path/to/hist.root /path/to/inputfile histogram name
@@ -314,6 +397,9 @@ int main(int argc, char *argv[])
     TClonesArray *branchJet = treeReader->UseBranch("Jet");
     TClonesArray *branchParticle = treeReader->UseBranch("Particle");
     TClonesArray *branchTower = treeReader->UseBranch("Tower");
+    TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
+    TClonesArray *branchElectron = treeReader->UseBranch("Electron");
+    TClonesArray *branchMuon = treeReader->UseBranch("Muon");
 
     //cout << treeReader->GetEntries() << endl;
     int nEvent = treeReader->GetEntries();
@@ -321,10 +407,12 @@ int main(int argc, char *argv[])
     {
         treeReader->ReadEntry(iEvent);
         //cout << iEvent << endl;
-        double inv = analyse4b(branchJet, branchParticle, branchTower, 1);
+        //double inv = analyse4b(branchJet, branchParticle, branchTower, 1);
+        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon);
         if (inv != 0)
         {
             hist->Fill(inv);
+            //cout << inv << endl;
         }
         treeReader->Clear();
     }
