@@ -295,7 +295,7 @@ double analyseBB(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesA
         finalState = getFinalState(branchTower);
         parton = getParton(branchParticle);
 
-        boostedHiggs->init(finalState, parton, 150, 110, 1.5, 0.3);
+        boostedHiggs->init(finalState, parton, {}, 150, 110, 1.5, 0.3);
         if (type == 1)
         {
             boostedHiggs->process(1);

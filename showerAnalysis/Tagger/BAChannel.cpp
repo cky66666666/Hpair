@@ -50,44 +50,6 @@ int BAChannel::flavourAssociation(TLorentzVector jet)
     return flavour;
 }
 
-HiggsCand BAChannel::higgsSelector(vector<HiggsCand> candidate)
-{
-    int n = candidate.size();
-    HiggsCand higgsCand;
-    
-    if (n == 1)
-    {
-        higgsCand = candidate[0];
-    }
-    else
-    {
-        TLorentzVector tmp;
-        double massDif = 1000;
-        for (int i = 0; i < n; i++)
-        {
-            tmp = candidate[i].cand1 + candidate[i].cand2;
-            if (abs(tmp.M() - 125) < massDif)
-            {
-                higgsCand = candidate[i];
-            }
-        }
-    }
-    if (higgsCand.index1 != higgsCand.index2)
-    {
-        if (higgsCand.index1 > higgsCand.index2)
-        {
-            jet.erase(jet.begin() + higgsCand.index1);
-            jet.erase(jet.begin() + higgsCand.index2);
-        }
-        else
-        {
-            jet.erase(jet.begin() + higgsCand.index2);
-            jet.erase(jet.begin() + higgsCand.index1);
-        }
-    }
-    return higgsCand;
-}
-
 void BAChannel::init(vector<PseudoJet> finalState, vector<GenParticle*> parton, vector<TLorentzVector> photon, vector<TLorentzVector> electron, vector<TLorentzVector> muon)
 {
     this->finalState = finalState;
@@ -101,7 +63,7 @@ void BAChannel::init(vector<PseudoJet> finalState, vector<GenParticle*> parton, 
     jet = {};
 }
 
-bool BAChannel::preselect()
+bool BAChannel::trigger()
 {
     for (int i = 0; i < electron.size(); i++)
     {
@@ -133,22 +95,22 @@ bool BAChannel::preselect()
 
 void BAChannel::preprocess()
 {
-    /* ClusterSequence sequence = ClusterSequence(finalState, JetDefinition(antikt_algorithm, 0.4));
+    ClusterSequence sequence = ClusterSequence(finalState, JetDefinition(antikt_algorithm, 0.4));
     vector<PseudoJet> tmpJet = sorted_by_pt(sequence.inclusive_jets(30));
-    TLorentzVector pJet; */
+    TLorentzVector pJet;
 
-    /* for (int i = 0; i < tmpJet.size(); i++)
+    for (int i = 0; i < tmpJet.size(); i++)
     {
         if (tmpJet[i].pt() > 30 && abs(tmpJet[i].eta()) < 2.5)
         {
             pJet.SetPxPyPzE(tmpJet[i].px(), tmpJet[i].py(), tmpJet[i].pz(), tmpJet[i].e());
             jet.push_back(pJet);
         }
-    } */
+    }
 
     for (int i = 0; i < photon.size(); i++)
     {
-        if (photon[i].Pt() < 30 /* || !(abs(photon[i].Eta()) < 1.37 || 1.52 < abs(photon[i].Eta()) < 2.37) */)
+        if (photon[i].Pt() < 30 || (abs(photon[i].Eta()) < 1.52 && abs(photon[i].Eta()) > 1.37) || abs(photon[i].Eta()) >= 2.5)
         {
             photon.erase(photon.begin() + i);
             i--;
@@ -157,15 +119,16 @@ void BAChannel::preprocess()
 
 }
 
-void BAChannel::find2AHiggs()
+void BAChannel::selPhotonPair()
 {
     int nPhoton = photon.size();
+    vector<double> diPhotonPt = {};
 
     for (int i = 0; i < nPhoton; i++)
     {
         for (int j = i + 1; j < nPhoton; j++)
         {
-            if ((0.4 < photon[i].DeltaR(photon[j]) < 2.0) && (123 < (photon[i] + photon[j]).M() < 127))
+            if ((photon[i].DeltaR(photon[j]) > 0.4) && (photon[i].DeltaR(photon[j]) < 2.0) && ((photon[i] + photon[j]).M() < 128) && ((photon[i] + photon[j]).M() > 122))
             {
                 HiggsCand tmp;
                 tmp.cand1 = photon[i];
@@ -176,15 +139,30 @@ void BAChannel::find2AHiggs()
             }
         } 
     }
+    
+    if (higgsCandListA.size() > 0)
+    {
+        for (int i = 0; i < higgsCandListA.size(); i++)
+        {
+            diPhotonPt.push_back((higgsCandListA[i].cand1 + higgsCandListA[i].cand2).Pt());
+        }
+        int maxPosition = max_element(diPhotonPt.begin(), diPhotonPt.end()) - diPhotonPt.begin();
+        photonPair = {higgsCandListA[maxPosition].cand1, higgsCandListA[maxPosition].cand2};
+    }
+    
+
 }
 
-void BAChannel::find2BHiggs()
+void BAChannel::selBPair()
 {
+    vector<double> bPairPt = {};
     for (int i = 0; i < jet.size(); i++)
     {
         for (int j = i + 1; j < jet.size(); j++)
         {
-            if (flavourAssociation(jet[i]) == 5 && flavourAssociation(jet[j]) == 5 && (0.4 < jet[i].DeltaR(jet[j]) < 2) && (100 < (jet[i] + jet[j]).M() < 150) && jet[i].Pt() > 40)
+            if (flavourAssociation(jet[i]) == 5 && flavourAssociation(jet[j]) == 5 && (jet[i].DeltaR(jet[j]) < 2) && (jet[i].DeltaR(jet[j]) > 0.4) 
+                && ((jet[i] + jet[j]).M() < 150) && ((jet[i] + jet[j]).M() > 100) && jet[i].Pt() > 40 && jet[i].DeltaR(photonPair[0]) > 0.4
+                && jet[i].DeltaR(photonPair[1]) > 0.4 && jet[j].DeltaR(photonPair[0]) > 0.4 && jet[j].DeltaR(photonPair[1]) > 0.4)
             {
                 HiggsCand tmp;
                 tmp.cand1 = jet[i];
@@ -195,14 +173,32 @@ void BAChannel::find2BHiggs()
             }
         }   
     }
+
+    if (higgsCandListB.size() > 0)
+    {
+        for (int i = 0; i < higgsCandListB.size(); i++)
+        {
+            bPairPt.push_back((higgsCandListB[i].cand1 + higgsCandListB[i].cand2).Pt());
+        }
+        int maxPosition = max_element(bPairPt.begin(), bPairPt.end()) - bPairPt.begin();
+        bPair = {higgsCandListB[maxPosition].cand1, higgsCandListB[maxPosition].cand2};
+        jet.erase(jet.begin() + higgsCandListB[maxPosition].index2);
+        jet.erase(jet.begin() + higgsCandListB[maxPosition].index1);
+    }
 }
 
 void BAChannel::find2BHiggsHard()
 {
     BoostedHiggs boostedHiggs;
-    vector<PseudoJet> remmant, remmantJet;
-    
-    boostedHiggs.init(finalState, parton, 100, 110, 2, 0.3);
+    vector<PseudoJet> remmant, remmantJet, photonPair_J;
+
+    for (int i = 0; i < photonPair.size(); i++)
+    {
+        PseudoJet tmp = PseudoJet(photonPair[0].Px(), photonPair[0].Py(), photonPair[0].Pz(), photonPair[0].E());
+        photonPair_J.push_back(tmp);
+    }
+
+    boostedHiggs.init(finalState, parton, photonPair_J, 80, 100, 1.5, 0.3);
     boostedHiggs.process(1);
     if (boostedHiggs.boostedHiggs.size() != 0)
     {
@@ -229,45 +225,31 @@ void BAChannel::find2BHiggsHard()
 
 void BAChannel::process()
 {
-    HiggsCand higgsA, higgsB;
+    //HiggsCand higgsA, higgsB;
     preprocess();
-    if (preselect())
+    if (trigger())
     {
-        find2AHiggs();
-        find2BHiggsHard();
-
-        /* if (higgsCandListA.size() == 0 || higgsCandListB.size() == 0)
+        selPhotonPair();
+        if (photonPair.size() == 2)
         {
-            status = false;
-        }
-        else
-        {
-            higgsA = higgsSelector(higgsCandListA);
-            higgsB = higgsSelector(higgsCandListB);
-
-            if (higgsA.cand1.DeltaR(higgsB.cand1) < 0.4 || higgsA.cand1.DeltaR(higgsB.cand2) < 0.4 
-                || higgsA.cand2.DeltaR(higgsB.cand1) < 0.4 || higgsA.cand2.DeltaR(higgsB.cand2) < 0.4)
+            selBPair();
+            if (bPair.size() == 2 && jet.size() > 0)
             {
-                status = false;
+                higgsFromA = photonPair[0] + photonPair[1];
+                higgsFromB = bPair[0] + bPair[1];
+                hardJet = jet[0];
             }
             else
             {
-                hardJet = jet[0];
-                higgsFromA = higgsA.cand1 + higgsA.cand2;
-                higgsFromB = higgsB.cand1 + higgsB.cand2;
+                status = false;
             }
-        } */
-        if (higgsCandListA.size() == 0)
-        {
-            status = false;
+            /* higgsFromA = photonPair[0] + photonPair[1];
+            find2BHiggsHard(); */
         }
         else
         {
-            higgsA = higgsSelector(higgsCandListA);
-            higgsFromA = higgsA.cand1 + higgsA.cand2;
+            status = false;
         }
-        
-        
     }
     else
     {

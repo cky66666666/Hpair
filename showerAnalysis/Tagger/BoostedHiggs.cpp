@@ -34,7 +34,7 @@ BoostedHiggs::~BoostedHiggs()
     
 }
 
-void BoostedHiggs::init(vector<PseudoJet> finalState, vector<GenParticle*> parton, double fatJetMinPt = 150, double fatJetMinMass = 110, double fatJetR = 1.5, double fatSubStructureR = 0.3)
+void BoostedHiggs::init(vector<PseudoJet> finalState, vector<GenParticle*> parton, vector<PseudoJet> lepHiggs, double fatJetMinPt = 150, double fatJetMinMass = 110, double fatJetR = 1.5, double fatSubStructureR = 0.3)
 {
     this->finalState = finalState;
     this->fatJetMinPt = fatJetMinPt;
@@ -42,6 +42,7 @@ void BoostedHiggs::init(vector<PseudoJet> finalState, vector<GenParticle*> parto
     this->fatJetMinMass = fatJetMinMass;
     this->fatSubStructureR = fatSubStructureR;
     this->parton = parton;
+    this->lepHiggs = lepHiggs;
 
     boostedHiggs = {};
     higgsConstituent = {};
@@ -149,15 +150,30 @@ void BoostedHiggs::declusterFatJet()
     vector<PseudoJet>::iterator itMother;
     PseudoJet parent1, parent2;
 
-    for (int i = 0; i < fatJet.size(); i++)
+    if (lepHiggs.size() == 2)
     {
-        if (fatJet[i].m() > fatJetMinMass)
+        for (int i = 0; i < fatJet.size(); i++)
         {
-            mother = {fatJet[i]};
-            break;
+            if (fatJet[i].m() > fatJetMinMass && fatJet[i].delta_R(lepHiggs[0]) > 0.4 && fatJet[i].delta_R(lepHiggs[1]) > 0.4)
+            {
+                mother = {fatJet[i]};
+                break;
+            }
         }
-        
     }
+    else
+    {
+        for (int i = 0; i < fatJet.size(); i++)
+        {
+            if (fatJet[i].m() > fatJetMinMass)
+            {
+                mother = {fatJet[i]};
+                break;
+            }
+        }
+    }
+    
+    //cout << mother.size() << endl;
 
     fatSubStructure = {};
     

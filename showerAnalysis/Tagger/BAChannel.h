@@ -24,10 +24,11 @@ private:
     vector<GenParticle*> parton;
     vector<TLorentzVector> photon, electron, muon, jet;
     vector<HiggsCand> higgsCandListA, higgsCandListB;
+    vector<TLorentzVector> photonPair, bPair;
     
     HiggsCand higgsSelector(vector<HiggsCand>);
     int flavourAssociation(TLorentzVector);
-    bool preselect();
+    bool trigger();
 
 public:
     TLorentzVector higgsFromA, higgsFromB, hardJet;
@@ -38,8 +39,8 @@ public:
 
     void init(vector<PseudoJet>, vector<GenParticle*>, vector<TLorentzVector>, vector<TLorentzVector>, vector<TLorentzVector>);
     void preprocess();
-    void find2AHiggs();
-    void find2BHiggs();
+    void selPhotonPair();
+    void selBPair();
     void find2BHiggsHard();
     void process();
     void finish();
