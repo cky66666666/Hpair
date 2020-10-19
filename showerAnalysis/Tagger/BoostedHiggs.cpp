@@ -228,7 +228,7 @@ vector<PseudoJet> BoostedHiggs::findBoostedHiggs(int nHiggs)
             combinedJet = combineJet({fatSubStructure[i].constituents(), fatSubStructure[j].constituents()});
             deltaR = min(fatSubStructureR, deltaRCalc(fatSubStructure[i], fatSubStructure[j]) / 2);
             ClusterSequence filter = ClusterSequence(combinedJet, JetDefinition(cambridge_algorithm, deltaR));
-            tmp = sorted_by_pt(filter.inclusive_jets());
+            tmp = sorted_by_pt(filter.inclusive_jets(30));
             
             if (isHiggs(tmp))
             {

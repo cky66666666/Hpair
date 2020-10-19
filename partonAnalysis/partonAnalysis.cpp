@@ -1,4 +1,5 @@
 #include "iostream"
+#include "string.h"
 #include "vector"
 #include "ExRootAnalysis/ExRootTreeReader.h"
 #include "ExRootAnalysis/ExRootClasses.h"
@@ -11,7 +12,7 @@
 
 using namespace std;
 
-extern double higgsPt = 150;
+extern double higgsPt = 0;
 extern double jetPt = 100;
 
 
@@ -29,16 +30,17 @@ vector<TRootLHEFParticle*> findParticles(TClonesArray *branchParticles){
     return particleList;
 }
 
-TH1D* drawHist(ExRootTreeReader *treeReader, int legend){
+TH1D* drawHist(ExRootTreeReader *treeReader, char treeName[], int ptj){
     TClonesArray *branchParticles = treeReader->UseBranch("Particle");
     TRootLHEFParticle *particle;
     vector<TLorentzVector> higgs;
     TLorentzVector tmp;
-    int maxPtPoint, minPtPoint, n = 0;
-    char histName[10];
-    sprintf(histName, "deltaLam=%d", legend - 6);
-    TH1D *histInvMass = new TH1D(histName, histName, 50, 0, 1000);
-    TH1D *histRH = new TH1D(histName, histName, 50, 0, 5);
+    int maxPtPoint, minPtPoint, nFinal = 0;
+    /* char histName[10];
+    sprintf(histName, "ptj=%d", ptj); */
+
+    TH1D *histInvMass = new TH1D(treeName, treeName, 50, 250, 1000);
+    //TH1D *histRH = new TH1D(histName, histName, 50, 0, 5);
     for (int iEvent = 0; iEvent < treeReader->GetEntries(); iEvent++)
     {
         treeReader->ReadEntry(iEvent);
@@ -50,26 +52,27 @@ TH1D* drawHist(ExRootTreeReader *treeReader, int legend){
                 tmp.SetPxPyPzE(particle->Px, particle->Py, particle->Pz, particle->E);
                 higgs.push_back(tmp);
             }
+            if (particle->Status == 1)
+            {
+                nFinal += 1;
+            }
         }
         //int maxPoint = maxPt(higgs);
         if (higgs.size() < 2) continue;
-        if ((higgs[0].Pt() > higgsPt || higgs[1].Pt() > higgsPt) && (higgs[0] + higgs[1]).Pt() > jetPt)
+        if ((higgs[0] + higgs[1]).Pt() > ptj && nFinal == 3)
         {
-           /* if (higgs[0].Pt() > higgs[1].Pt())
-           {
-               histInvMass->Fill(higgs[0].Pt());
-           }
-           else
-           {
-               histInvMass->Fill(higgs[1].Pt());
-           } */
            histInvMass->Fill((higgs[0] + higgs[1]).M());
-           
-           //n += 1;
         }
+        else if (nFinal == 2)
+        {
+            histInvMass->Fill((higgs[0] + higgs[1]).M());
+        }
+        
         //histRH->Fill(higgs[0].DeltaR(higgs[1]));
+        nFinal = 0;
         higgs.clear();
     }
+    histInvMass->Scale(10000 / (histInvMass->GetEntries()), "nosw2");
     //cout << n << endl;
     return histInvMass;
 }
@@ -142,18 +145,25 @@ TH1D* analyzeBkg(ExRootTreeReader *treeReader)
 }
 
 int main(int argc, char *argv[]){
-    vector<int> nTree = {6, 11};
+    vector<string> treeName_s = {"ptj=20", "penta"};
+    vector<string> inputFile_s = {"../event/hhj_1_1_20.root", "../event/hhg_penta.root"};
     vector<int> nEvent;
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
-    for (int i = 0; i < nTree.size(); i++)
+    for (int i = 0; i < treeName_s.size(); i++)
     {
-        char treeName[10];
-        sprintf(treeName, "LHEF%d", nTree[i]);
+        char treeName[treeName_s[i].length()], inputFile[inputFile_s[i].length()];
+        strcpy(treeName, treeName_s[i].c_str());
+        strcpy(inputFile, inputFile_s[i].c_str());
+
         TChain *chain = new TChain(treeName);
-        chain->Add(argv[1]);
+        chain->Add(inputFile);
         ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-        stackInvMass->Add(drawHist(treeReader, nTree[i]));
+        stackInvMass->Add(drawHist(treeReader, treeName, 100));
+        //stackInvMass->Add(drawHist(treeReader, treeName, 150));
+        //stackInvMass->Add(drawHist(treeReader, treeName, 200));
         //nEvent.push_back(drawHist(treeReader, nTree[i]));
+        
+        
         delete chain;
         delete treeReader;
     } 

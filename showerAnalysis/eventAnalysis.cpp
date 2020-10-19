@@ -269,7 +269,7 @@ bool eventSelector(myEvent event)
     {
         status = false;
     }
-    if (abs(event.softHiggs.M() - 125) > 20 || event.hardJet.Pt() < 200)
+    if (abs(event.softHiggs.M() - 125) > 20 || event.hardJet.Pt() < 150 || event.hardHiggs.Pt() < 80 || event.softHiggs.Pt() < 80)
     {
         status = false;
     }
@@ -295,7 +295,7 @@ double analyseBB(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesA
         finalState = getFinalState(branchTower);
         parton = getParton(branchParticle);
 
-        boostedHiggs->init(finalState, parton, {}, 150, 110, 1.5, 0.3);
+        boostedHiggs->init(finalState, parton, {}, 80, 110, 1.5, 0.3);
         if (type == 1)
         {
             boostedHiggs->process(1);
@@ -407,8 +407,8 @@ int main(int argc, char *argv[])
     {
         treeReader->ReadEntry(iEvent);
         //cout << iEvent << endl;
-        //double inv = analyse4b(branchJet, branchParticle, branchTower, 1);
-        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon);
+        double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
+        //double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon);
         if (inv != 0)
         {
             hist->Fill(inv);
