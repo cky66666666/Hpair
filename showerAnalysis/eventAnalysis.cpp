@@ -17,6 +17,7 @@
 
 #include "Tagger/BoostedHiggs.h"
 #include "Tagger/BAChannel.h"
+#include "Tagger/BTChannel.h"
 
 using namespace std;
 using namespace fastjet;
@@ -381,13 +382,71 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
     }
 }
 
+double analyzeTT(TClonesArray *branchJet, TClonesArray *branchElectron, TClonesArray *branchMuon, TClonesArray *branchParticle, TClonesArray *branchMET)
+{
+    vector<Jet*> jet;
+    vector<Electron*> electron;
+    vector<Muon*> muon;
+    vector<GenParticle*> parton;
+    TLorentzVector missP;
+
+    for (int i = 0; i < branchJet->GetEntries(); i++)
+    {
+        jet.push_back((Jet*) branchJet->At(i));
+    }
+    for (int i = 0; i < branchElectron->GetEntries(); i++)
+    {
+        electron.push_back((Electron*) branchElectron->At(i));
+    }
+    for (int i = 0; i < branchMuon->GetEntries(); i++)
+    {
+        muon.push_back((Muon*) branchMuon->At(i));
+    }
+    MissingET *met = (MissingET*) branchMET->At(0);
+    missP.SetPtEtaPhiM(met->MET, met->Eta, met->Phi, 0);
+    
+    BTChannel BTEvent = BTChannel();
+    BTEvent.init(jet, electron, muon, missP);
+    BTEvent.process();
+
+    if (BTEvent.status)
+    {
+        ROOT::Math::Minimizer *mt2 = ROOT::Math::Factory::CreateMinimizer();
+        ROOT::Math::Functor f(&BTEvent, &BTChannel::mTMax, 2);
+        TRandom2 r(5);
+        mt2->SetMaxFunctionCalls(1000000); // for Minuit/Minuit2
+        mt2->SetMaxIterations(10000);  // for GSL
+        mt2->SetTolerance(0.001);
+        mt2->SetPrintLevel(0);
+        mt2->SetFunction(f);
+
+        mt2->SetVariable(0, "x1", 10, 0.01);
+        mt2->SetVariable(1, "x2", 10, 0.01);
+
+        mt2->Minimize();
+        if (mt2->MinValue() > 100)
+        {
+            return BTEvent.dihiggsInvM;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+    else
+    {
+        return 0;
+    }
+    
+}
+
 int main(int argc, char *argv[])
 {
     // Usage: ./eventAnalysis /path/to/hist.root /path/to/inputfile histogram name
 
-    gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
+    //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
     
-    TH1D *hist = new TH1D(argv[3], argv[3], 50, 250, 1000);
+    TH1D *hist = new TH1D(argv[3], argv[3], 50, 0, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
@@ -400,22 +459,29 @@ int main(int argc, char *argv[])
     TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
     TClonesArray *branchElectron = treeReader->UseBranch("Electron");
     TClonesArray *branchMuon = treeReader->UseBranch("Muon");
+    TClonesArray *branchMET = treeReader->UseBranch("MissingET");
 
     //cout << treeReader->GetEntries() << endl;
     int nEvent = treeReader->GetEntries();
+    int n = 0, m = 0;
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
         //cout << iEvent << endl;
-        double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
+        //double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
         //double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon);
-        if (inv != 0)
+        //double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
+        /* if (inv > 0)
         {
             hist->Fill(inv);
             //cout << inv << endl;
-        }
+        } */
+        n += branchPhoton->GetEntries();
+        m += branchJet->GetEntries();
         treeReader->Clear();
     }
+    cout << n << endl;
+    cout << m << endl;
     
     hist->Write();    
     f->Close();
