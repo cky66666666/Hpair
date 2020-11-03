@@ -3,26 +3,38 @@
 
 #include "vector"
 #include "TLorentzVector.h"
-
-namespace fastjet
-{
-class PseudoJet;
-class ClusterSequence;
-}
-
-class GenParticle;
-class Photon;
-class HiggsCand;
+#include "fastjet/PseudoJet.hh"
+#include "fastjet/ClusterSequence.hh"
+#include "classes/DelphesClasses.h"
+#include "vector"
+#include "BoostedHiggs.h"
 
 using namespace std;
 using namespace fastjet;
+
+class HiggsCand
+{
+public:
+    HiggsCand()
+    {
+
+    }
+    ~HiggsCand()
+    {
+
+    }
+    TLorentzVector cand1;
+    TLorentzVector cand2;
+    int index1, index2;
+};
 
 class BAChannel
 {
 private:
     vector<PseudoJet> finalState;
     vector<GenParticle*> parton;
-    vector<TLorentzVector> photon, electron, muon, jet;
+    vector<TLorentzVector> photon, electron, muon, bJet, lightJet;
+    vector<Jet*> delphesJet;
     vector<HiggsCand> higgsCandListA, higgsCandListB;
     vector<TLorentzVector> photonPair, bPair;
     
@@ -37,7 +49,7 @@ public:
     BAChannel();
     ~BAChannel();
 
-    void init(vector<PseudoJet>, vector<GenParticle*>, vector<TLorentzVector>, vector<TLorentzVector>, vector<TLorentzVector>);
+    void init(vector<PseudoJet>, vector<GenParticle*>, vector<TLorentzVector>, vector<TLorentzVector>, vector<TLorentzVector>, vector<Jet*>);
     void preprocess();
     void selPhotonPair();
     void selBPair();

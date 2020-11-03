@@ -103,7 +103,7 @@ bool BoostedHiggs::isHiggs(vector<PseudoJet> higgsCandidate)
         }
     }
 
-    if (bJet.size() != 2) return false;
+    if (bJet.size() < 2) return false;
     if (/* bJet[0].delta_R(bJet[1]) >= 0.4 && */ abs((candidate[0] + candidate[1] + candidate[2]).m() - mH) < 20)
     {
         return true;
@@ -150,7 +150,7 @@ void BoostedHiggs::declusterFatJet()
     vector<PseudoJet>::iterator itMother;
     PseudoJet parent1, parent2;
 
-    if (lepHiggs.size() == 2)
+    /* if (lepHiggs.size() == 2)
     {
         for (int i = 0; i < fatJet.size(); i++)
         {
@@ -160,18 +160,17 @@ void BoostedHiggs::declusterFatJet()
                 break;
             }
         }
-    }
-    else
+    } */
+    
+    for (int i = 0; i < fatJet.size(); i++)
     {
-        for (int i = 0; i < fatJet.size(); i++)
+        if (fatJet[i].m() > fatJetMinMass)
         {
-            if (fatJet[i].m() > fatJetMinMass)
-            {
-                mother = {fatJet[i]};
-                break;
-            }
+            mother = {fatJet[i]};
+            break;
         }
     }
+    
     
     //cout << mother.size() << endl;
 

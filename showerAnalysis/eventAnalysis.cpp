@@ -350,12 +350,13 @@ double analyseBB(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesA
     }
 }
 
-double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, TClonesArray *branchMuon)
+double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, TClonesArray *branchMuon, TClonesArray *branchJet)
 {
     BAChannel *BAEvent = new BAChannel();
     vector<PseudoJet> finalState;
     vector<GenParticle*> parton;
     vector<TLorentzVector> photon, electron, muon;
+    vector<Jet*> delphesJet = {};
     double inv;
 
     finalState = getFinalState(branchTower);
@@ -364,10 +365,16 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
     electron = getObject(branchElectron, 2);
     muon = getObject(branchMuon, 3);
 
-    BAEvent->init(finalState, parton, photon, electron, muon);
+    for (int i = 0; i < branchJet->GetEntries(); i++)
+    {
+        delphesJet.push_back((Jet*) branchJet->At(i));
+    }
+    
+
+    BAEvent->init(finalState, parton, photon, electron, muon, delphesJet);
     BAEvent->process();
 
-    if (BAEvent->status && (BAEvent->hardJet).Pt() > 150 && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80)
+    if (BAEvent->status && (BAEvent->hardJet).Pt() > 200 /* && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80 */)
     {
         inv = (BAEvent->higgsFromA + BAEvent->higgsFromB).M();
         BAEvent->finish();
@@ -446,7 +453,7 @@ int main(int argc, char *argv[])
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
     
-    TH1D *hist = new TH1D(argv[3], argv[3], 50, 0, 1000);
+    TH1D *hist = new TH1D(argv[3], argv[3], 50, 250, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
@@ -463,26 +470,23 @@ int main(int argc, char *argv[])
 
     //cout << treeReader->GetEntries() << endl;
     int nEvent = treeReader->GetEntries();
-    int n = 0, m = 0;
+    int n = 0;
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
         //cout << iEvent << endl;
         //double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
-        //double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon);
+        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet);
         //double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
-        /* if (inv > 0)
+        if (inv > 0)
         {
             hist->Fill(inv);
             //cout << inv << endl;
-        } */
-        n += branchPhoton->GetEntries();
-        m += branchJet->GetEntries();
+            n += 1;
+        }
         treeReader->Clear();
     }
     cout << n << endl;
-    cout << m << endl;
-    
     hist->Write();    
     f->Close();
 
