@@ -112,7 +112,6 @@ void BAChannel::preprocess()
             {
                 lightJet.push_back(pJet);
             }
-            
         }
         
     }
@@ -200,10 +199,8 @@ void BAChannel::selBPair()
     }
 
     vector<TLorentzVector> tmp;
-    tmp.reserve(bJet.size() + lightJet.size());
-    tmp.insert(tmp.end(), bJet.begin(), bJet.end());
-    tmp.insert(tmp.end(), lightJet.begin(), lightJet.end());
-    lightJet = tmp;
+    vector<vector<TLorentzVector>> tmp1 = {bJet, lightJet};
+    lightJet = combineVector(tmp1);
 }
 
 void BAChannel::find2BHiggsHard()
@@ -221,13 +218,13 @@ void BAChannel::find2BHiggsHard()
     boostedHiggs.process(1);
     if (boostedHiggs.boostedHiggs.size() != 0)
     {
-        higgsFromB.SetPxPyPzE((boostedHiggs.boostedHiggs)[0].px(), (boostedHiggs.boostedHiggs)[0].py(), (boostedHiggs.boostedHiggs)[0].pz(), (boostedHiggs.boostedHiggs)[0].e());
+        signal.higgs1.SetPxPyPzE((boostedHiggs.boostedHiggs)[0].px(), (boostedHiggs.boostedHiggs)[0].py(), (boostedHiggs.boostedHiggs)[0].pz(), (boostedHiggs.boostedHiggs)[0].e());
         remmant = boostedHiggs.remmant;
         ClusterSequence remmantSeq = ClusterSequence(remmant, JetDefinition(antikt_algorithm, 0.4));
         remmantJet = sorted_by_pt(remmantSeq.inclusive_jets(30));
         if (remmantJet.size() != 0)
         {
-            hardJet.SetPxPyPzE(remmantJet[0].px(), remmantJet[0].py(), remmantJet[0].pz(), remmantJet[0].e());
+            signal.hardJet.SetPxPyPzE(remmantJet[0].px(), remmantJet[0].py(), remmantJet[0].pz(), remmantJet[0].e());
         }
         else
         {
@@ -254,8 +251,12 @@ void BAChannel::process()
             selBPair();
             if (bPair.size() == 2 && lightJet.size() > 0)
             {
-                higgsFromA = photonPair[0] + photonPair[1];
-                higgsFromB = bPair[0] + bPair[1];
+                signal.b1 = bPair[0];
+                signal.b2 = bPair[1];
+                signal.other1 = photonPair[0];
+                signal.other2 = photonPair[1];
+                signal.higgs1 = bPair[0] + bPair[1];
+                signal.higgs2 = photonPair[0] + photonPair[1];
 
                 vector<double> jetPt;
                 for (int i = 0; i < lightJet.size(); i++)
@@ -264,7 +265,7 @@ void BAChannel::process()
                 }
                 int maxPosition = max_element(jetPt.begin(), jetPt.end()) - jetPt.begin();
 
-                hardJet = lightJet[maxPosition];
+                signal.hardJet = lightJet[maxPosition];
             }
             else
             {

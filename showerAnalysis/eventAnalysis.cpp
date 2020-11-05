@@ -353,6 +353,7 @@ double analyseBB(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesA
 double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, TClonesArray *branchMuon, TClonesArray *branchJet)
 {
     BAChannel *BAEvent = new BAChannel();
+    SignalEvent event;
     vector<PseudoJet> finalState;
     vector<GenParticle*> parton;
     vector<TLorentzVector> photon, electron, muon;
@@ -373,10 +374,11 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
 
     BAEvent->init(finalState, parton, photon, electron, muon, delphesJet);
     BAEvent->process();
+    event = BAEvent->signal;
 
-    if (BAEvent->status && (BAEvent->hardJet).Pt() > 200 /* && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80 */)
+    if (BAEvent->status && (event.hardJet).Pt() > 200  /* && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80 */)
     {
-        inv = (BAEvent->higgsFromA + BAEvent->higgsFromB).M();
+        inv = event.diHiggsInvM();
         BAEvent->finish();
         delete BAEvent;
         return inv;

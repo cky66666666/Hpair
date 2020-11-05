@@ -8,6 +8,7 @@
 #include "classes/DelphesClasses.h"
 #include "vector"
 #include "BoostedHiggs.h"
+#include "BasicObject.h"
 
 using namespace std;
 using namespace fastjet;
@@ -43,7 +44,7 @@ private:
     bool trigger();
 
 public:
-    TLorentzVector higgsFromA, higgsFromB, hardJet;
+    SignalEvent signal;
     bool status;
 
     BAChannel();
