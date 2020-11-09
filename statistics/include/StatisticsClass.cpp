@@ -33,10 +33,10 @@ double LikelihoodFunc::likelihood(const double *sigStrength)
     double result = 0;
     for (int i = 0; i < nBin; i++)
     {
-        double mu = sigStrength[0] * round(signal[i]) + round(bkg[i]);
+        double mu = sigStrength[0] * signal[i] + bkg[i];
         if (mu != 0)
         {
-            result += (round(obs[i])) * log(mu) - logfac(round(obs[i])) - mu;
+            result += obs[i] * log(mu) - mu;
         }
     }
     return -result;
@@ -58,7 +58,7 @@ double maxLikelihood(Data data)
 
     minimizer->SetVariable(0, "sigStrength", 1.2, 0.01);
     minimizer->Minimize();
-    cout << (minimizer->X())[0] << endl;
+    //cout << (minimizer->X())[0] << endl;
     return minimizer->MinValue();
 }
 
@@ -101,7 +101,7 @@ vector<vector<double>> sigmaCalc(vector<vector<double>> sigList, vector<double> 
         Data data;
         data.bkg = bkg;
         data.signal = sigList[i];
-        data.obs = addVec(sigList[i], bkg);
+        data.obs = addVec(assumption, bkg);
         double logL = maxLikelihood(data);
         vector<double> significance = {(double) kapLam[i], sqrt(2 * abs(logL - bestFitLogL))};
         result.push_back(significance);

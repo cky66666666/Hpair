@@ -25,23 +25,22 @@ int main()
         f.Close();
     }
     
-    TFile fbkg("/mnt/d/work/Hpair/cpp/showerAnalysis/histogram/bkg_aa_10.root");
+    TFile fbkg("/mnt/d/work/Hpair/cpp/showerAnalysis/histogram/bkg_aa_28.root");
     TH1D *histBkg = (TH1D*) fbkg.Get("bkg");
-    double xSecBkg = 246.3;
-    bkg = histConverter(histBkg, 2 * xSecBkg * 3000 / 300000);
+    bkg = histConverter(histBkg, 1);
     fbkg.Close();
-    /* double num;
-    for (int i = 0; i < sigList[0].size(); i++)
+    double num;
+    for (int i = 0; i < bkg.size(); i++)
     {
-        num += sigList[0][i];
+        num += bkg[i];
     }
-    cout << num << endl; */
+    cout << num << endl;
 
     result = sigmaCalc(sigList, sigList[1], bkg, kapLam);
-    for (int i = 0; i < result.size(); i++)
+    /* for (int i = 0; i < result.size(); i++)
     {
         cout << result[i][1] << endl;
-    }
+    } */
     
     
     return 0;

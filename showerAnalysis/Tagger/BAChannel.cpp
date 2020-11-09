@@ -137,7 +137,7 @@ void BAChannel::selPhotonPair()
     {
         for (int j = i + 1; j < nPhoton; j++)
         {
-            if (/* (photon[i].DeltaR(photon[j]) > 0.4) && (photon[i].DeltaR(photon[j]) < 2.0) && */ ((photon[i] + photon[j]).M() < 128) && ((photon[i] + photon[j]).M() > 122))
+            if ((photon[i].DeltaR(photon[j]) > 0.4) && (photon[i].DeltaR(photon[j]) < 2.0) && ((photon[i] + photon[j]).M() < 128) && ((photon[i] + photon[j]).M() > 122))
             {
                 HiggsCand tmp;
                 tmp.cand1 = photon[i];
@@ -171,8 +171,8 @@ void BAChannel::selBPair()
     {
         for (int j = i + 1; j < bJet.size(); j++)
         {
-            if (/* (bJet[i].DeltaR(bJet[j]) < 2) && (bJet[i].DeltaR(bJet[j]) > 0.4) 
-                && */ ((bJet[i] + bJet[j]).M() < 150) && ((bJet[i] + bJet[j]).M() > 100) && max(bJet[i].Pt(), bJet[j].Pt()) > 40 /* && bJet[i].DeltaR(photonPair[0]) > 0.4
+            if ((bJet[i].DeltaR(bJet[j]) < 2) && (bJet[i].DeltaR(bJet[j]) > 0.4) 
+                && ((bJet[i] + bJet[j]).M() < 150) && ((bJet[i] + bJet[j]).M() > 100) && max(bJet[i].Pt(), bJet[j].Pt()) > 40 /* && bJet[i].DeltaR(photonPair[0]) > 0.4
                 && bJet[i].DeltaR(photonPair[1]) > 0.4 && bJet[j].DeltaR(photonPair[0]) > 0.4 && bJet[j].DeltaR(photonPair[1]) > 0.4 */)
             {
                 HiggsCand tmp;
