@@ -3,8 +3,8 @@
 
 int main()
 {
-    vector<int> kapLam = {0, 1, 2, 3};
-    vector<double> xSection = {24.82, 16.2594, 9.276521, 8.839};
+    vector<int> kapLam = {-1, 0, 1, 2, 3, 4, 5};
+    vector<double> xSection = {44.01856, 24.82, 16.2594, 9.276521, 8.839, 17.25444, 32.60771};
     double braRatio = 2 * 0.5809 * 0.00227;
     vector<vector<double>> sigList;
     vector<double> bkg;
@@ -30,17 +30,17 @@ int main()
     bkg = histConverter(histBkg, 1);
     fbkg.Close();
     double num;
-    for (int i = 0; i < bkg.size(); i++)
+    /* for (int i = 0; i < bkg.size(); i++)
     {
         num += bkg[i];
     }
-    cout << num << endl;
+    cout << num << endl; */
 
-    result = sigmaCalc(sigList, sigList[1], bkg, kapLam);
-    /* for (int i = 0; i < result.size(); i++)
+    result = sigmaCalc(sigList, sigList[2], bkg, kapLam);
+    for (int i = 0; i < result.size(); i++)
     {
         cout << result[i][1] << endl;
-    } */
+    }
     
     
     return 0;

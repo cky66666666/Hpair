@@ -88,8 +88,13 @@ vector<vector<double>> sigmaCalc(vector<vector<double>> sigList, vector<double> 
     bestFit.bkg = bkg;
     bestFit.signal = assumption;
     bestFit.obs = addVec(bkg, assumption);
+    
+    LikelihoodFunc Likelihood;
+    Likelihood.init(bestFit);
+    const double mu = 1;
+    double bestFitLogL = Likelihood.likelihood(&mu);
 
-    double bestFitLogL = maxLikelihood(bestFit);
+    //double bestFitLogL = maxLikelihood(bestFit);
 
     for (int i = 0; i < sigList.size(); i++)
     {
@@ -102,7 +107,11 @@ vector<vector<double>> sigmaCalc(vector<vector<double>> sigList, vector<double> 
         data.bkg = bkg;
         data.signal = sigList[i];
         data.obs = addVec(assumption, bkg);
-        double logL = maxLikelihood(data);
+
+        Likelihood.init(data);
+        double logL = Likelihood.likelihood(&mu);
+
+        //double logL = maxLikelihood(data);
         vector<double> significance = {(double) kapLam[i], sqrt(2 * abs(logL - bestFitLogL))};
         result.push_back(significance);
     }
