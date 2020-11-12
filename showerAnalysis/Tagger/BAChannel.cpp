@@ -156,8 +156,8 @@ void BAChannel::selPhotonPair()
             diPhotonPt.push_back((higgsCandListA[i].cand1 + higgsCandListA[i].cand2).Pt());
             deltaInvM.push_back(abs((higgsCandListA[i].cand1 + higgsCandListA[i].cand2).M() - 125));
         }
-        int minPosition = min_element(deltaInvM.begin(), deltaInvM.end()) - deltaInvM.begin();
-        photonPair = {higgsCandListA[minPosition].cand1, higgsCandListA[minPosition].cand2};
+        int maxPosition = max_element(diPhotonPt.begin(), diPhotonPt.end()) - diPhotonPt.begin();
+        photonPair = {higgsCandListA[maxPosition].cand1, higgsCandListA[maxPosition].cand2};
     }
     
 
@@ -172,8 +172,8 @@ void BAChannel::selBPair()
         for (int j = i + 1; j < bJet.size(); j++)
         {
             if ((bJet[i].DeltaR(bJet[j]) < 2) && (bJet[i].DeltaR(bJet[j]) > 0.4) 
-                && ((bJet[i] + bJet[j]).M() < 150) && ((bJet[i] + bJet[j]).M() > 100) && max(bJet[i].Pt(), bJet[j].Pt()) > 40 /* && bJet[i].DeltaR(photonPair[0]) > 0.4
-                && bJet[i].DeltaR(photonPair[1]) > 0.4 && bJet[j].DeltaR(photonPair[0]) > 0.4 && bJet[j].DeltaR(photonPair[1]) > 0.4 */)
+                && ((bJet[i] + bJet[j]).M() < 150) && ((bJet[i] + bJet[j]).M() > 100) && max(bJet[i].Pt(), bJet[j].Pt()) > 40 && bJet[i].DeltaR(photonPair[0]) > 0.4
+                && bJet[i].DeltaR(photonPair[1]) > 0.4 && bJet[j].DeltaR(photonPair[0]) > 0.4 && bJet[j].DeltaR(photonPair[1]) > 0.4)
             {
                 HiggsCand tmp;
                 tmp.cand1 = bJet[i];
@@ -192,15 +192,15 @@ void BAChannel::selBPair()
             bPairPt.push_back((higgsCandListB[i].cand1 + higgsCandListB[i].cand2).Pt());
             deltaInvM.push_back(abs((higgsCandListB[i].cand1 + higgsCandListB[i].cand2).M() - 125));
         }
-        int minPosition = min_element(deltaInvM.begin(), deltaInvM.end()) - deltaInvM.begin();
-        bPair = {higgsCandListB[minPosition].cand1, higgsCandListB[minPosition].cand2};
-        bJet.erase(bJet.begin() + higgsCandListB[minPosition].index2);
-        bJet.erase(bJet.begin() + higgsCandListB[minPosition].index1);
+        int maxPosition = max_element(bPairPt.begin(), bPairPt.end()) - bPairPt.begin();
+        bPair = {higgsCandListB[maxPosition].cand1, higgsCandListB[maxPosition].cand2};
+        bJet.erase(bJet.begin() + higgsCandListB[maxPosition].index2);
+        bJet.erase(bJet.begin() + higgsCandListB[maxPosition].index1);
     }
 
-    vector<TLorentzVector> tmp;
-    vector<vector<TLorentzVector>> tmp1 = {bJet, lightJet};
-    lightJet = combineVector(tmp1);
+    //vector<TLorentzVector> tmp;
+    /* vector<vector<TLorentzVector>> tmp1 = {bJet, lightJet};
+    lightJet = combineVector(tmp1); */
 }
 
 void BAChannel::find2BHiggsHard()
@@ -258,13 +258,13 @@ void BAChannel::process()
                 signal.higgs1 = bPair[0] + bPair[1];
                 signal.higgs2 = photonPair[0] + photonPair[1];
 
-                vector<double> jetPt;
+                vector<double> jetPt = {};
                 for (int i = 0; i < lightJet.size(); i++)
                 {
                     jetPt.push_back(lightJet[i].Pt());
                 }
                 int maxPosition = max_element(jetPt.begin(), jetPt.end()) - jetPt.begin();
-
+                //cout << jetPt[maxPosition] << endl;
                 signal.hardJet = lightJet[maxPosition];
             }
             else

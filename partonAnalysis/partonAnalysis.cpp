@@ -154,22 +154,24 @@ TH1D* analyzeBkg(ExRootTreeReader *treeReader)
 }
 
 int main(int argc, char *argv[]){
-    vector<string> treeName_s = {"kappa=1", "kappa=2", "kappa=3"};
-    vector<string> inputFile_s = {"../event/sig_aa_1_10_28.root", "../event/sig_aa_2_10_28.root", "../event/sig_aa_3_10_28.root"};
+    vector<string> treeName_s = {"kappa=3", "kappa=3", "kappa=3"};
+    vector<string> histName_s = {"ptj=100", "ptj=200", "ptj=300"};
+    vector<string> inputFile_s = {"../event/sig_aa_3_10_28.root", "../event/sig_aa_3_10_28.root", "../event/sig_aa_3_10_28.root"};
     vector<int> nEvent;
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
     for (int i = 0; i < treeName_s.size(); i++)
     {
-        char treeName[treeName_s[i].length()], inputFile[inputFile_s[i].length()];
+        char treeName[treeName_s[i].length()], inputFile[inputFile_s[i].length()], histName[histName_s[i].length()];
         strcpy(treeName, treeName_s[i].c_str());
         strcpy(inputFile, inputFile_s[i].c_str());
+        strcpy(histName, histName_s[i].c_str());
 
         TChain *chain = new TChain(treeName);
         chain->Add(inputFile);
         ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-        stackInvMass->Add(drawHist(treeReader, treeName, 200));
-        //stackInvMass->Add(drawHist(treeReader, treeName, 150));
-        //stackInvMass->Add(drawHist(treeReader, treeName, 200));
+        stackInvMass->Add(drawHist(treeReader, histName, 100 * (i + 1)));
+        /* stackInvMass->Add(drawHist(treeReader, treeName, 200));
+        stackInvMass->Add(drawHist(treeReader, treeName, 300)); */
         //nEvent.push_back(drawHist(treeReader, nTree[i]));
         
         
