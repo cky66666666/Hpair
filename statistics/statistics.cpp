@@ -17,8 +17,8 @@ TGraph* drawGraph(vector<vector<double>> result)
 
 int main()
 {
-    vector<int> kapLam = {-1, 0, 1, 2, 3};
-    vector<double> xSection = {44.01856, 24.82, 16.2594, 9.276521, 8.839};
+    vector<int> kapLam = {-1, 0, 1, 2, 3, 4, 5};
+    vector<double> xSection = {44.01856, 24.82, 16.2594, 9.276521, 8.839, 17.25444, 32.60771};
     double braRatio = 2 * 0.5809 * 0.00227;
     vector<vector<double>> sigList;
     vector<double> bkg;

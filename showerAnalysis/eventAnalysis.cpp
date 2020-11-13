@@ -378,6 +378,7 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
 
     if (BAEvent->status && (event.hardJet).Pt() > 100  /* && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80 */)
     {
+        //inv = event.hardJet.Pt();
         inv = event.diHiggsInvM();
         BAEvent->finish();
         delete BAEvent;
