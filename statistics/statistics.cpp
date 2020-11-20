@@ -33,7 +33,7 @@ int main()
         sprintf(histName, "kappa=%d", kapLam[i]);
         TFile f(fileName);
         TH1D *hist = (TH1D*) f.Get(histName);
-        double scale = 2 * xSection[i] * braRatio * 3000 / 100000;
+        double scale = xSection[i] * braRatio * 3000 / 100000;
         tmp = histConverter(hist, scale);
         sigList.push_back(tmp);
         f.Close();
@@ -51,10 +51,10 @@ int main()
     cout << num << endl; */
 
     result = sigmaCalc(sigList, sigList[2], bkg, kapLam);
-    /* for (int i = 0; i < result.size(); i++)
+    for (int i = 0; i < result.size(); i++)
     {
         cout << result[i][1] << endl;
-    } */
+    }
     TGraph *graph = drawGraph(result);
     TFile f("../graph/significance.root", "RECREATE");
     graph->Write();

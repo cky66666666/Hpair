@@ -98,12 +98,13 @@ void BAChannel::preprocess()
             
         }
     } */
-
+    double Ht = 0;
     for (int i = 0; i < delphesJet.size(); i++)
     {
         if (delphesJet[i]->PT > 30 && abs(delphesJet[i]->Eta) < 2.5)
         {
             pJet.SetPtEtaPhiM(delphesJet[i]->PT, delphesJet[i]->Eta, delphesJet[i]->Phi, delphesJet[i]->Mass);
+            Ht += pJet.Pt();
             if (delphesJet[i]->BTag == 1)
             {
                 bJet.push_back(pJet);
@@ -115,6 +116,8 @@ void BAChannel::preprocess()
         }
         
     }
+    signal.nJet = bJet.size() + lightJet.size();
+    signal.Ht = Ht;
     
     for (int i = 0; i < photon.size(); i++)
     {
@@ -199,8 +202,8 @@ void BAChannel::selBPair()
     }
 
     //vector<TLorentzVector> tmp;
-    /* vector<vector<TLorentzVector>> tmp1 = {bJet, lightJet};
-    lightJet = combineVector(tmp1); */
+    vector<vector<TLorentzVector>> tmp1 = {bJet, lightJet};
+    lightJet = combineVector(tmp1);
 }
 
 void BAChannel::find2BHiggsHard()

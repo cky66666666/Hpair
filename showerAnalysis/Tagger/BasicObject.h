@@ -33,6 +33,8 @@ class SignalEvent
 public:
     TLorentzVector higgs1, higgs2, hardJet;
     TLorentzVector b1, b2, other1, other2;
+    int nJet;
+    double Ht;
 
     SignalEvent()
     {

@@ -27,10 +27,12 @@ vector<TRootLHEFParticle*> findParticles(TClonesArray *branchParticles){
     return particleList;
 }
 
-TH1D* drawHist(ExRootTreeReader *treeReader, char treeName[], int ptj){
+TH1D* drawHist(ExRootTreeReader *treeReader, char treeName[], int ptj, double scale)
+{
     TClonesArray *branchParticles = treeReader->UseBranch("Particle");
     TRootLHEFParticle *particle;
     vector<TLorentzVector> higgs, photon, bQuark;
+    vector<double> jetPt;
     TLorentzVector tmp;
     int maxPtPoint, minPtPoint;
     /* char histName[10];
@@ -45,32 +47,39 @@ TH1D* drawHist(ExRootTreeReader *treeReader, char treeName[], int ptj){
         {
             particle = (TRootLHEFParticle*) branchParticles->At(iParticle);
             tmp.SetPxPyPzE(particle->Px, particle->Py, particle->Pz, particle->E);
-            if (particle->PID == 25)
-            {
-                higgs.push_back(tmp);
-            }
-            else if (particle->PID == 22)
+            if (particle->PID == 22 && particle->PT > 30)
             {
                 photon.push_back(tmp);
             }
-            else if (abs(particle->PID) == 5)
+            else if (abs(particle->PID) == 5 && particle->PT > 30)
             {
                 bQuark.push_back(tmp);
             }
-            
+            else if (abs(particle->PID) <= 4 || abs(particle->PID) == 21)
+            {
+                jetPt.push_back(tmp.Pt());
+            }
         }
-        //int maxPoint = maxPt(higgs);
-        //cout << photon.size() << endl;
-        if (higgs.size() != 2 || photon.size() != 2 || bQuark.size() != 2)
+        if (photon.size() != 2 || bQuark.size() != 2)
         {
             higgs.clear();
             photon.clear();
             bQuark.clear();
+            jetPt.clear();
             continue;
         }
-        if ((higgs[0] + higgs[1]).Pt() > ptj && photon[0].Pt() > 30 && photon[1].Pt() > 30 && bQuark[0].Pt() > 30 && bQuark[1].Pt() > 30
+        else
+        {
+            higgs.push_back(photon[0] + photon[1]);
+            higgs.push_back(bQuark[0] + bQuark[1]);
+        }
+
+        int maxPoint = max_element(jetPt.begin(), jetPt.end()) - jetPt.begin();
+
+        if (jetPt[maxPoint] > ptj && photon[0].Pt() > 30 && photon[1].Pt() > 30 && bQuark[0].Pt() > 30 && bQuark[1].Pt() > 30
             && bQuark[0].DeltaR(bQuark[1]) < 2 && bQuark[0].DeltaR(bQuark[1]) > 0.4 && photon[0].DeltaR(photon[1]) > 0.4 && photon[0].DeltaR(photon[1]) < 2
-            && bQuark[0].DeltaR(photon[0]) > 0.4 && bQuark[0].DeltaR(photon[1]) > 0.4 && bQuark[1].DeltaR(photon[0]) > 0.4 && bQuark[1].DeltaR(photon[1]) > 0.4)
+            && bQuark[0].DeltaR(photon[0]) > 0.4 && bQuark[0].DeltaR(photon[1]) > 0.4 && bQuark[1].DeltaR(photon[0]) > 0.4 && bQuark[1].DeltaR(photon[1]) > 0.4
+            && abs(higgs[0].M() - 125) < 3 && abs(higgs[1].M() - 125) < 20)
         {
            histInvMass->Fill((higgs[0] + higgs[1]).M());
         }
@@ -79,10 +88,12 @@ TH1D* drawHist(ExRootTreeReader *treeReader, char treeName[], int ptj){
         higgs.clear();
         photon.clear();
         bQuark.clear();
+        jetPt.clear();
     }
     //histInvMass->Scale(10000 / (histInvMass->GetEntries()), "nosw2");
     //cout << n << endl;
     cout << histInvMass->GetEntries() << endl;
+    histInvMass->Scale(scale, "nosw2");
     return histInvMass;
 }
 
@@ -154,9 +165,13 @@ TH1D* analyzeBkg(ExRootTreeReader *treeReader)
 }
 
 int main(int argc, char *argv[]){
-    vector<string> treeName_s = {"kappa=3", "kappa=3", "kappa=3"};
-    vector<string> histName_s = {"ptj=100", "ptj=200", "ptj=300"};
-    vector<string> inputFile_s = {"../event/sig_aa_3_10_28.root", "../event/sig_aa_3_10_28.root", "../event/sig_aa_3_10_28.root"};
+    vector<string> treeName_s = {"kappa=3", "bkg_3jh", "bkg_tth", "bkg_zh"};
+    vector<string> histName_s = {"kappa=3", "bkg_3jh", "bkg_tth", "bkg_zh"};
+    vector<string> inputFile_s = {"../event/sig_aa_3_10_28.root", "../event/bkg_aa_3jh_20_28.root", "../event/bkg_aa_tth_10_28.root"
+                                    , "../event/bkg_aa_zh_10_28.root"};
+    const double braRatio = 2 * 0.5809 * 0.00227;
+    const double lumi = 3000;
+    vector<double> xSection = {8.839 * braRatio * lumi / 1000, 0.06625 * lumi / 20000, 2.319 * lumi / 10000, 0.05442 * lumi / 10000};
     vector<int> nEvent;
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
     for (int i = 0; i < treeName_s.size(); i++)
@@ -169,7 +184,7 @@ int main(int argc, char *argv[]){
         TChain *chain = new TChain(treeName);
         chain->Add(inputFile);
         ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-        stackInvMass->Add(drawHist(treeReader, histName, 100 * (i + 1)));
+        stackInvMass->Add(drawHist(treeReader, histName, 300, xSection[i]));
         /* stackInvMass->Add(drawHist(treeReader, treeName, 200));
         stackInvMass->Add(drawHist(treeReader, treeName, 300)); */
         //nEvent.push_back(drawHist(treeReader, nTree[i]));

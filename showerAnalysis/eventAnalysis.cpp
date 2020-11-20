@@ -376,10 +376,10 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
     BAEvent->process();
     event = BAEvent->signal;
 
-    if (BAEvent->status && (event.hardJet).Pt() > 100  /* && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80 */)
+    if (BAEvent->status && (event.hardJet).Pt() > 100 && event.nJet <= 5 /* && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80 */)
     {
-        //inv = event.hardJet.Pt();
-        inv = event.diHiggsInvM();
+        inv = event.Ht;
+        //inv = event.diHiggsInvM();
         BAEvent->finish();
         delete BAEvent;
         return inv;
@@ -456,7 +456,7 @@ int main(int argc, char *argv[])
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
     
-    TH1D *hist = new TH1D(argv[3], argv[3], 50, 250, 1000);
+    TH1D *hist = new TH1D(argv[3], argv[3], 50, 0, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
