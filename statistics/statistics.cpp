@@ -1,6 +1,7 @@
 #include "include/StatisticsClass.h"
 #include "TFile.h"
 #include "TGraph.h"
+#include "TH1D.h"
 
 TGraph* drawGraph(vector<vector<double>> result)
 {
@@ -26,20 +27,22 @@ int main()
 
     for (int i = 0; i < kapLam.size(); i++)
     {
-        char fileName[100];
+        char fileName[200];
         char histName[10];
         vector<double> tmp = {};
-        sprintf(fileName, "/mnt/d/work/Hpair/cpp/showerAnalysis/histogram/InvMass/sig_aa_%d_10_28.root", kapLam[i]);
+        sprintf(fileName, "/home/E/chaikangyu/work/Hpair/cpp/showerAnalysis/histogram/InvMass/sig_aa_%d_10_28.root", kapLam[i]);
         sprintf(histName, "kappa=%d", kapLam[i]);
         TFile f(fileName);
         TH1D *hist = (TH1D*) f.Get(histName);
+        //cout << hist->GetEntries() << endl;
         double scale = xSection[i] * braRatio * 3000 / 100000;
         tmp = histConverter(hist, scale);
         sigList.push_back(tmp);
         f.Close();
     }
+
     
-    TFile fbkg("/mnt/d/work/Hpair/cpp/showerAnalysis/histogram/InvMass/bkg_aa_28.root");
+    TFile fbkg("/home/E/chaikangyu/work/Hpair/cpp/showerAnalysis/histogram/InvMass/bkg_aa_28.root");
     TH1D *histBkg = (TH1D*) fbkg.Get("bkg");
     bkg = histConverter(histBkg, 1);
     fbkg.Close();

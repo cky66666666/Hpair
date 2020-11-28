@@ -5,7 +5,7 @@ project(statistics)
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT CONFIG REQUIRED)
 
-include_directories(/mnt/d/work/Hpair/cpp/statistics/include /mnt/d/work/Hpair/cpp/statistics)
+include_directories(/home/E/chaikangyu/work/Hpair/cpp/statistics/include /home/E/chaikangyu/work/Hpair/cpp/statistics)
 add_subdirectory(include)
 
 add_executable(statistics statistics.cpp)

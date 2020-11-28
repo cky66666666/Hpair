@@ -8,12 +8,14 @@
 #include "ExRootAnalysis/ExRootTreeWriter.h"
 #include "ExRootAnalysis/ExRootTreeBranch.h"
 #include "ExRootAnalysis/ExRootProgressBar.h"
+#include "TSystem.h"
 
 using namespace std;
 
 int main(int argc, char *argv[]){
     //Usage: ./lheReader /path/to/output.root treename /path/to/input.lhe
     
+    gSystem->Load("/home/E/chaikangyu/packages/ExRootAnalysis/libExRootAnalysis.so");
     FILE *inputfile;
     TFile *outputfile;
     outputfile = TFile::Open(argv[1], "RECREATE");

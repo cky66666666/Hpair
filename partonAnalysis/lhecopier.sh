@@ -1,12 +1,13 @@
 #!/bin/bash
-lhepath=/mnt/d/packages/MG5_aMC_v2_6_7/hhj4bSignal/Events
-#lhepath=/mnt/c/Users/CHAIKANGYU/Desktop/MG5_aMC_v2_6_6/hhj5/Events
-destpath=/mnt/d/work/Hpair/events/lhe
-for ((i=2;i<=4;i++))
-do
-    cd $lhepath/run_0$i
-    gzip -d unweighted_events_decayed.lhe.gz
-    mv unweighted_events_decayed.lhe sig_tt_$[i]_10.lhe
-    #mv hhj$i.lhe hhj$[i-6]_1.lhe
-    cp sig_tt_$[i]_10.lhe $destpath
-done
+mg5=/home/E/chaikangyu/packages/MG5_aMC_v2_6_7
+dest=/home/E/chaikangyu/work/Hpair/events/lhe
+
+cd $mg5/bkg_aa_bbaa/Events/run_01
+gzip -d unweighted_events.lhe.gz
+mv unweighted_events.lhe bkg_aa_bbaa_10_28.lhe
+cp bkg_aa_bbaa_10_28.lhe $dest
+
+cd $mg5/bkg_aa_bbaj/Events/run_01
+gzip -d unweighted_events.lhe.gz
+mv unweighted_events.lhe bkg_aa_bbaj_10_28.lhe
+cp bkg_aa_bbaj_10_28.lhe $dest

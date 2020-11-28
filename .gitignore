@@ -4,6 +4,7 @@
 /showerAnalysis/rubbishCode.cpp
 /.vscode
 /showerAnalysis/histogram
-/partonAnalysis/event
+/partonAnalysis/events
 /partonAnalysis/histogram
+/partonAnalysis/CMakeLists.txt
 /statistics/build
