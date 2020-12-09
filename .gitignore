@@ -5,6 +5,6 @@
 /.vscode
 /showerAnalysis/histogram
 /partonAnalysis/events
-/partonAnalysis/histogram
+/partonAnalysis/hist
 /partonAnalysis/CMakeLists.txt
 /statistics/build

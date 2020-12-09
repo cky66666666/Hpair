@@ -1,7 +1,6 @@
 #include "BTChannel.h"
 
 using namespace std;
-using namespace fastjet;
 
 BTChannel::BTChannel()
 {
@@ -221,10 +220,9 @@ bool BTChannel::selector()
     double mtt = (event.tau + event.antitau + event.pMis).M();
     double mbb = (event.b + event.antib).M();
     double deltaBB = event.b.DeltaR(event.antib);
-    double ptBB = (event.b + event.antib).Pt();
     double ptj = event.hardJet.Pt();
 
-    if (mtt > 80 && mtt < 170 && mbb > 100 && mbb < 150 && deltaBB > 0.4 && deltaBB < 2 /* && ptBB > 80 */ && ptj > 120)
+    if (mtt > 80 && mtt < 170 && mbb > 100 && mbb < 150 && deltaBB > 0.4 && deltaBB < 2 && ptj > 150)
     {
         return true;
     }

@@ -1,8 +1,6 @@
 #ifndef _BTChannel_
 #define _BTChannel_
 
-#include "fastjet/PseudoJet.hh"
-#include "fastjet/ClusterSequence.hh"
 #include "classes/DelphesClasses.h"
 #include "TLorentzVector.h"
 
@@ -14,7 +12,6 @@
 #include "vector"
 #include "iostream"
 
-using namespace fastjet;
 using namespace std;
 
 class MyEvent

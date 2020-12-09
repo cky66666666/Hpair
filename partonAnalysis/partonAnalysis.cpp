@@ -11,7 +11,6 @@
 #include "algorithm"
 
 #define MH 125
-#define PTJ 100
 #define NBIN 50
 #define BEGIN 250
 #define END 1000
@@ -107,7 +106,7 @@ MyEvent eventCons(TClonesArray *branchParticle)
         }
         else
         {
-            vector<int> index = findHiggsB(jet);
+            vector<int> index = findHiggsB(bJet);
             event.photon1 = photon[0];
             event.photon2 = photon[1];
             event.bJet1 = bJet[index[0]];
@@ -124,7 +123,7 @@ MyEvent eventCons(TClonesArray *branchParticle)
 }
 
 
-TH1D* drawHist(ExRootTreeReader *treeReader, char histName[], double scale)
+TH1D* drawHist(ExRootTreeReader *treeReader, char histName[], double scale, double ptj)
 {
     TClonesArray *branchParticles = treeReader->UseBranch("Particle");
     MyEvent event;
@@ -134,40 +133,40 @@ TH1D* drawHist(ExRootTreeReader *treeReader, char histName[], double scale)
     TH1D *histInvMass = new TH1D(histName, histName, NBIN, BEGIN, END);
     //TH1D *histRH = new TH1D(histName, histName, 50, 0, 5);
     //cout << treeReader->GetEntries() << endl;
-    TRootLHEFParticle *particle;
     for (int iEvent = 0; iEvent < treeReader->GetEntries(); iEvent++)
     {
         treeReader->ReadEntry(iEvent);
-        //particle = (TRootLHEFParticle*) branchParticles->At(1);
-        //cout << particle->PT << endl;
         event = eventCons(branchParticles);
-        if (abs((event.photon1 + event.photon2).M() - MH) < 3 && abs((event.bJet1 + event.bJet2).M() - MH) < 25 && event.hardJet.Pt() > PTJ)
+        if (abs((event.photon1 + event.photon2).M() - MH) < 50 && abs((event.bJet1 + event.bJet2).M() - MH) < 50 && event.hardJet.Pt() > ptj)
         {
+            //histInvMass->Fill(max(event.bJet1.M(), event.bJet2.M()) / (event.bJet1 + event.bJet2).M());
             histInvMass->Fill((event.photon1 + event.photon2 + event.bJet1 + event.bJet2).M());
-            //cout << (event.photon1 + event.photon2 + event.bJet1 + event.bJet2).M() << endl;
         }
+        //histInvMass->Fill(event.bJet1.DeltaR(event.bJet2));
     }
     histInvMass->Scale(scale, "nosw2");
     return histInvMass;
 }
 
-TH1D* bkgAnalyzer(vector<string> bkgTreeName_s, vector<string> bkgInputFile_s, vector<double> xSectionBkg)
+TH1D* bkgAnalyzer(vector<string> bkgTreeName_s, vector<string> bkgInputFile_s, vector<double> xSectionBkg, double ptj)
 {
-    TH1D *histInvMass = new TH1D("bkg", "bkg", NBIN, BEGIN, END);
+    char histName[20];
+    sprintf(histName, "bkg_%d", (int)ptj);
+    
+    TH1D *histInvMass = new TH1D(histName, histName, NBIN, BEGIN, END);
     
     for (int i = 0; i < bkgTreeName_s.size(); i++)
     {
         char inputFile[bkgInputFile_s[i].length()], treeName[bkgTreeName_s[i].length()];
-        char histName[5];
+        char histName[20];
         strcpy(inputFile, bkgInputFile_s[i].c_str());
         strcpy(treeName, bkgTreeName_s[i].c_str());
-        strcpy(histName, ((string) "bkg").c_str());
         
         TChain *chain = new TChain(treeName);
         chain->Add(inputFile);
         ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
 
-        histInvMass->Add(drawHist(treeReader, histName, xSectionBkg[i]));
+        histInvMass->Add(drawHist(treeReader, histName, xSectionBkg[i], ptj));
     }
 
     return histInvMass;
@@ -176,7 +175,7 @@ TH1D* bkgAnalyzer(vector<string> bkgTreeName_s, vector<string> bkgInputFile_s, v
 
 int main(int argc, char *argv[])
 {
-    vector<string> sigTreeName_s = {"kappa=-1", "kappa=1", "kappa=3"};
+    vector<string> sigTreeName_s = {"kappa=-1"/* , "kappa=1", "kappa=3" */};
     vector<string> sigHistName_s = {"kappa=-1", "kappa=1", "kappa=3"};
     vector<string> sigInputFile_s = {"../events/sig_aa_-1_10_28.root", "../events/sig_aa_1_10_28.root", "../events/sig_aa_3_10_28.root"};
 
@@ -184,32 +183,43 @@ int main(int argc, char *argv[])
                                     "../events/bkg_aa_tth_10_28.root", "../events/bkg_aa_zh_10_28.root"};
     vector<string> bkgTreeName_s = {"bkg_3jh", "bkg_bbaa", "bkg_tth", "bkg_zh"};
 
+    vector<double> ptjList = {100, 150, 200};
+
     const double braRatio = 2 * 0.5809 * 0.00227;
     const double lumi = 3000;
-    vector<double> xSectionSignal = {44.01856 * braRatio * lumi / 10000, 16.2594 * lumi / 10000, 8.839 * lumi / 10000};
-    vector<double> xSectionBkg = {0.06625 * lumi / 200000, 0.44785340233 * lumi / 100000, 2.319 * lumi / 100000, 0.05442 * lumi / 100000};
+    vector<double> xSectionSignal = {44.01856 * braRatio * lumi / 100000, 12.65067 * braRatio * lumi / 100000, 8.839 * braRatio * lumi / 100000};
+    vector<double> xSectionBkg = {0.06625 * lumi / 200000, 0.44785340233 * lumi / 100000, 2.319 * lumi / 1000000, 0.05442 * lumi / 100000};
 
     vector<int> nEvent;
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
-    for (int i = 0; i < sigTreeName_s.size(); i++)
+    for (int j = 0; j < ptjList.size(); j++)
     {
-        char treeName[sigTreeName_s[i].length()], inputFile[sigInputFile_s[i].length()], histName[sigHistName_s[i].length()];
-        strcpy(treeName, sigTreeName_s[i].c_str());
-        strcpy(inputFile, sigInputFile_s[i].c_str());
-        strcpy(histName, sigHistName_s[i].c_str());
+        char tmp[10];
+        sprintf(tmp, "_%d", (int)ptjList[j]);
+        for (int i = 0; i < sigTreeName_s.size(); i++)
+        {
+            char treeName[sigTreeName_s[i].length()], inputFile[sigInputFile_s[i].length()], histName[sigHistName_s[i].length() + 10];
+            strcpy(treeName, sigTreeName_s[i].c_str());
+            strcpy(inputFile, sigInputFile_s[i].c_str());
 
-        TChain *chain = new TChain(treeName);
-        chain->Add(inputFile);
-        ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-        stackInvMass->Add(drawHist(treeReader, histName, xSectionSignal[i]));
-        /* stackInvMass->Add(drawHist(treeReader, treeName, 200));
-        stackInvMass->Add(drawHist(treeReader, treeName, 300)); */
-        //nEvent.push_back(drawHist(treeReader, nTree[i]));
-        delete chain;
-        delete treeReader;
-    } 
+            TChain *chain = new TChain(treeName);
+            chain->Add(inputFile);
+            ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
 
-    stackInvMass->Add(bkgAnalyzer(bkgTreeName_s, bkgInputFile_s, xSectionBkg));
+            string tmp1 = sigHistName_s[i] + tmp;
+            cout << sigHistName_s[i] << endl;
+            strcpy(histName, tmp1.c_str());
+
+            stackInvMass->Add(drawHist(treeReader, histName, xSectionSignal[i], ptjList[j]));
+            /* stackInvMass->Add(drawHist(treeReader, treeName, 200));
+            stackInvMass->Add(drawHist(treeReader, treeName, 300)); */
+            //nEvent.push_back(drawHist(treeReader, nTree[i]));
+            delete chain;
+            delete treeReader;
+        } 
+
+        stackInvMass->Add(bkgAnalyzer(bkgTreeName_s, bkgInputFile_s, xSectionBkg, ptjList[j]));
+    }
     
     TFile f("../hist/hist.root", "RECREATE");
     stackInvMass->Write();

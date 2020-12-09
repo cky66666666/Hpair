@@ -431,7 +431,8 @@ double analyzeTT(TClonesArray *branchJet, TClonesArray *branchElectron, TClonesA
         mt2->SetVariable(1, "x2", 10, 0.01);
 
         mt2->Minimize();
-        if (mt2->MinValue() > 100)
+        //return mt2->MinValue();
+        if (mt2->MinValue() > 110)
         {
             return BTEvent.dihiggsInvM;
         }
@@ -449,15 +450,19 @@ double analyzeTT(TClonesArray *branchJet, TClonesArray *branchElectron, TClonesA
 
 int main(int argc, char *argv[])
 {
-    // Usage: ./eventAnalysis /path/to/hist.root /path/to/inputfile histogram name
+    // Usage: ./eventAnalysis number of input file /path/to/hist.root /path/to/inputfile1 /path/to/inputfile2 ... histogram name
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
-    
-    TH1D *hist = new TH1D(argv[3], argv[3], 50, 250, 1000);
+
+    TH1D *hist = new TH1D(argv[argc - 1], argv[argc - 1], 50, 250, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
-    chain->Add(argv[2]);
+    for (int i = 2; i < argc - 1; i++)
+    {
+        chain->Add(argv[i]);
+    }
+    
     ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
     
     TClonesArray *branchJet = treeReader->UseBranch("Jet");
@@ -470,14 +475,15 @@ int main(int argc, char *argv[])
 
     //cout << treeReader->GetEntries() << endl;
     int nEvent = treeReader->GetEntries();
+    cout << nEvent << endl;
     int n = 0;
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
         //cout << iEvent << endl;
         //double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
-        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet);
-        //double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
+        //double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet);
+        double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
         if (inv > 0)
         {
             hist->Fill(inv);
@@ -486,8 +492,8 @@ int main(int argc, char *argv[])
         }
         treeReader->Clear();
     }
-    cout << n << endl;
-    hist->Write();    
+    cout << argv[argc - 1] << " " << n << endl;
+    hist->Write();
     f->Close();
 
     return 0;
