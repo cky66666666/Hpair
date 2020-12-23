@@ -373,10 +373,11 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
     BAEvent->process();
     event = BAEvent->signal;
 
-    if (BAEvent->status && (event.hardJet).Pt() > 100 && event.nJet <= 5 /* && (BAEvent->higgsFromA).Pt() > 80 && (BAEvent->higgsFromB).Pt() > 80 */)
+    if (BAEvent->status && (event.hardJet).Pt() > 80 && event.nJet <= 5)
     {
         //inv = event.Ht;
         inv = event.diHiggsInvM();
+        //inv = 1;
         BAEvent->finish();
         delete BAEvent;
         return inv;
@@ -482,8 +483,8 @@ int main(int argc, char *argv[])
         treeReader->ReadEntry(iEvent);
         //cout << iEvent << endl;
         //double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
-        //double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet);
-        double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
+        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet);
+        //double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
         if (inv > 0)
         {
             hist->Fill(inv);

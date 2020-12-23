@@ -274,8 +274,6 @@ void BAChannel::process()
             {
                 status = false;
             }
-            /* higgsFromA = photonPair[0] + photonPair[1];
-            find2BHiggsHard(); */
         }
         else
         {

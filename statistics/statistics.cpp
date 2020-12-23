@@ -54,6 +54,11 @@ int main()
     TH1D *histBkgAA = (TH1D*) fbkgAA.Get("bkg");
     //TH1D *histBkgTT = (TH1D*) fbkgTT.Get("bkg");
     bkgAA = histConverter(histBkgAA, 1);
+    for (int i = 0; i < sigListAA[0].size(); i++)
+    {
+        cout << sigListAA[0][i] << endl;
+    }
+    
     //bkgTT = histConverter(histBkgTT, 1);
     fbkgAA.Close();
     //fbkgTT.Close();
