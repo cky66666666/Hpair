@@ -14,7 +14,7 @@ struct Data
     vector<double> signal, bkg, obs; 
 };
 
-vector<double> histConverter(TH1D*, double);
+vector<double> histConverter(TH1D*, double, int);
 double logfac(int);
 double maxLikelihood(Data);
 vector<double> addVec(vector<double>, vector<double>);

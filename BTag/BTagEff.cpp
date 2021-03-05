@@ -32,23 +32,26 @@ int main(int argc, char *argv[])
     chain->Add(argv[1]);
     ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
     TClonesArray *branchJet = treeReader->UseBranch("Jet");
+    TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
 
     int diBJet = 0, singleB = 0;
+    int diPhoton = 0, singlePhoton = 0;
 
     for (int i = 0; i < treeReader->GetEntries(); i++)
     {
         treeReader->ReadEntry(i);
         int nBJet = coutBJet(branchJet);
-        if (nBJet == 1)
+        int nPhoton = branchPhoton->GetEntries();
+        if (nPhoton == 1)
         {
-            singleB += 1;
+            singlePhoton += 1;
         }
-        else if (nBJet == 2)
+        else if (nPhoton == 2)
         {
-            diBJet += 1;
+            diPhoton += 1;
         }
     }
-    cout << argv[1] << " " << "SingleB:" << singleB << " " << "diB:" << diBJet << " " << "BTagEff:" << (diBJet + 0.5 * singleB) / 10000 << endl;
+    cout << argv[1] << " " << "SinglePhoton:" << singlePhoton << " " << "diPhoton:" << diPhoton << " " << "PhotonEff:" << (diPhoton + 0.5 * singlePhoton) / 10000 << endl;
 
     return 0;
 }

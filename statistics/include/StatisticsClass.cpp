@@ -1,13 +1,23 @@
 #include "StatisticsClass.h"
 
-vector<double> histConverter(TH1D *hist, double scale)
+vector<double> histConverter(TH1D *hist, double scale, int nBin)
 {
     vector<double> tmp = {};
-    for (int i = 0; i < hist->GetNbinsX(); i++)
+
+    if (nBin > hist->GetNbinsX())
     {
-        tmp.push_back(hist->GetBinContent(i) * scale);
+        cout << "input bin number is greater than the total bin number of the histogram" << endl;
+        return tmp;
     }
-    return tmp;
+    else
+    {
+        for (int i = 0; i < nBin; i++)
+        {
+            tmp.push_back(hist->GetBinContent(i) * scale);
+        }
+     
+        return tmp;
+    }
 }
 
 double logfac(int n)
@@ -56,7 +66,7 @@ double maxLikelihood(Data data)
     minimizer->SetPrintLevel(0);
     minimizer->SetFunction(f);
 
-    minimizer->SetVariable(0, "sigStrength", 1.2, 0.01);
+    minimizer->SetVariable(0, "sigStrength", 1, 0.01);
     minimizer->Minimize();
     cout << (minimizer->X())[0] << endl;
     return minimizer->MinValue();

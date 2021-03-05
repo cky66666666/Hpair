@@ -6,6 +6,7 @@
 #include "TSystem.h"
 #include "TObject.h"
 
+#include <stdlib.h>
 #include "iostream"
 #include "vector"
 
@@ -347,6 +348,42 @@ double analyseBB(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesA
     }
 }
 
+void jetFakePhoton(vector<Jet*> &delphesJet, vector<TLorentzVector> &photon, int nFake)
+{
+    vector<Jet*> lightJet, heavyJet;
+    TLorentzVector jetPhoton;
+
+    for (int i = 0; i < delphesJet.size(); i++)
+    {
+        if (delphesJet[i]->BTag == 0)
+        {
+            lightJet.push_back(delphesJet[i]);
+        }
+        else
+        {
+            heavyJet.push_back(delphesJet[i]);
+        }
+    }
+    if (lightJet.size() < nFake)
+    {
+        return;
+    }
+    
+    for (int i = 0; i < nFake; i++)
+    {
+        int n = rand() % (lightJet.size());
+        jetPhoton.SetPtEtaPhiM(lightJet[n]->PT, lightJet[n]->Eta, lightJet[n]->Phi, lightJet[n]->Mass);
+        photon.push_back(jetPhoton);
+        lightJet.erase(lightJet.begin() + n);
+    }
+    
+    vector<Jet*> tmp;
+    tmp.reserve(lightJet.size() + heavyJet.size());
+    tmp.insert(tmp.end(), lightJet.begin(), lightJet.end());
+    tmp.insert(tmp.end(), heavyJet.begin(), heavyJet.end());
+    delphesJet = tmp;
+}
+
 double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, TClonesArray *branchMuon, TClonesArray *branchJet)
 {
     BAChannel *BAEvent = new BAChannel();
@@ -368,12 +405,13 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
         delphesJet.push_back((Jet*) branchJet->At(i));
     }
     
+    jetFakePhoton(delphesJet, photon, 2);
 
     BAEvent->init(finalState, parton, photon, electron, muon, delphesJet);
     BAEvent->process();
     event = BAEvent->signal;
 
-    if (BAEvent->status && (event.hardJet).Pt() > 80 && event.nJet <= 5)
+    if (BAEvent->status && (event.hardJet).Pt() > 120 && event.nJet <= 5)
     {
         //inv = event.Ht;
         inv = event.diHiggsInvM();
@@ -451,19 +489,30 @@ double analyzeTT(TClonesArray *branchJet, TClonesArray *branchElectron, TClonesA
 
 int main(int argc, char *argv[])
 {
-    // Usage: ./eventAnalysis number of input file /path/to/hist.root /path/to/inputfile1 /path/to/inputfile2 ... histogram name
+    // Usage: ./eventAnalysis /path/to/hist.root /path/to/inputfile numberOfInputFile histogram name
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
 
-    TH1D *hist = new TH1D(argv[argc - 1], argv[argc - 1], 50, 250, 1000);
+    TH1D *hist = new TH1D(argv[argc - 1], argv[argc - 1], 30, 250, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
-    for (int i = 2; i < argc - 1; i++)
+    int nData = (int) *argv[3] - 48;
+
+    if (nData == 1)
     {
-        chain->Add(argv[i]);
+        chain->Add(argv[2]);
     }
-    
+    else
+    {
+        for (int i = 1; i < nData + 1; i++)
+        {
+            char inputFile[100];
+            sprintf(inputFile, "%s_%d.root", argv[2], i);
+            chain->Add(inputFile);
+        }
+    }
+
     ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
     
     TClonesArray *branchJet = treeReader->UseBranch("Jet");
@@ -484,6 +533,7 @@ int main(int argc, char *argv[])
         //cout << iEvent << endl;
         //double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
         double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet);
+        
         //double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
         if (inv > 0)
         {
