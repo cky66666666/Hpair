@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include "iostream"
 #include "vector"
+#include "fstream"
 
 #include "ExRootAnalysis/ExRootTreeReader.h"
 #include "classes/DelphesClasses.h"
@@ -19,35 +20,10 @@
 #include "Tagger/BoostedHiggs.h"
 #include "Tagger/BAChannel.h"
 #include "Tagger/BTChannel.h"
+#include "Tagger/BasicObject.h"
 
 using namespace std;
 using namespace fastjet;
-
-struct Remmant
-{
-    Remmant()
-    {
-        hardJet.SetPxPyPzE(0, 0, 0, 0);
-        softHiggs.SetPxPyPzE(0, 0, 0, 0);
-    }
-    TLorentzVector hardJet;
-    TLorentzVector softHiggs;
-};
-
-struct myEvent
-{
-    myEvent()
-    {
-        hardJet.SetPxPyPzE(0, 0, 0, 0);
-        hardHiggs.SetPxPyPzE(0, 0, 0, 0);
-        softHiggs.SetPxPyPzE(0, 0, 0, 0);
-    }
-    TLorentzVector hardJet;
-    TLorentzVector hardHiggs;
-    TLorentzVector softHiggs;
-};
-
-
 
 bool trigger(TClonesArray *branchJet)
 {
@@ -193,161 +169,6 @@ int flavourAssociation(PseudoJet jet, vector<GenParticle*> parton)
     return flavour;
 }
 
-Remmant clusterRemmant(vector<PseudoJet> remmant, vector<GenParticle*> parton, int type)
-{
-    //type=1: no higgs tagger
-    //type=2: higgs tagger for h->2b
-    //type=3: higgs tagger for h->2a
-    ClusterSequence *sequence = new ClusterSequence(remmant, JetDefinition(antikt_algorithm, 0.4));
-    vector<PseudoJet> remmantJet = sorted_by_pt(sequence->inclusive_jets(30));
-    
-    Remmant remmantObject;
-
-    if (type == 1)
-    {
-        TLorentzVector hardJet;
-        if (remmantJet.size() > 0) hardJet.SetPxPyPzE(remmantJet[0].px(), remmantJet[0].py(), remmantJet[0].pz(), remmantJet[0].e());
-        remmantObject.hardJet = hardJet;
-        delete sequence;
-        return remmantObject;
-    }
-    else if (type == 2)
-    {
-        vector<PseudoJet> allJet = remmantJet;
-        vector<int> higgsIndex = {};
-        TLorentzVector softHiggs, hardJet;
-        softHiggs.SetPxPyPzE(0, 0, 0, 0);
-        hardJet.SetPxPyPzE(0, 0, 0 ,0);
-        double deltaInvMass = 1000;
-
-        int nJet = remmantJet.size();
-        for (int i = 0; i < nJet; i++)
-        {
-            if (flavourAssociation(remmantJet[i], parton) != 5) continue;
-            for (int j = i + 1; j < nJet; j++)
-            {
-                if (flavourAssociation(remmantJet[j], parton) != 5) continue;
-                if (abs((remmantJet[i] + remmantJet[j]).m() - 125) < deltaInvMass)
-                {
-                    deltaInvMass = abs((remmantJet[i] + remmantJet[j]).m() - 125);
-                    softHiggs.SetPxPyPzE((remmantJet[i] + remmantJet[j]).px(), (remmantJet[i] + remmantJet[j]).py(), (remmantJet[i] + remmantJet[j]).pz(), (remmantJet[i] + remmantJet[j]).e());
-                    higgsIndex = {i, j};
-                }
-                
-            }
-            
-        }
-
-        if (higgsIndex.size() == 2)
-        {
-            remmantJet.erase(remmantJet.begin() + higgsIndex[1]);
-            remmantJet.erase(remmantJet.begin() + higgsIndex[0]);
-        }
-
-        if (remmantJet.size() > 0) hardJet.SetPxPyPzE(remmantJet[0].px(), remmantJet[0].py(), remmantJet[0].pz(), remmantJet[0].e());
-        
-        remmantObject.hardJet = hardJet;
-        remmantObject.softHiggs = softHiggs;
-
-        delete sequence;
-        return remmantObject;
-    }
-    else
-    {
-        
-        delete sequence;
-        return remmantObject;
-    }
-    
-}
-
-bool eventSelector(myEvent event)
-{
-    bool status = true;
-    if (event.hardHiggs.M() == 0)
-    {
-        status = false;
-    }
-    if (abs(event.softHiggs.M() - 125) > 20 || event.hardJet.Pt() < 150 || event.hardHiggs.Pt() < 80 || event.softHiggs.Pt() < 80)
-    {
-        status = false;
-    }
-    return status;
-}
-
-double analyseBB(TClonesArray *branchJet, TClonesArray *branchParticle, TClonesArray *branchTower, int type)
-{
-    //type=1: single boosted higgs
-    //type=2: double boosted higgs
-    //type=3: collinear higgs pair
-
-    vector<PseudoJet> finalState;
-    vector<GenParticle*> parton;
-    BoostedHiggs *boostedHiggs = new BoostedHiggs();
-
-    PseudoJet tmp;
-    Remmant remmantObject;
-    myEvent event;
-    
-    if(trigger(branchJet))
-    {
-        finalState = getFinalState(branchTower);
-        parton = getParton(branchParticle);
-
-        boostedHiggs->init(finalState, parton, {}, 80, 110, 1.5, 0.3);
-        if (type == 1)
-        {
-            boostedHiggs->process(1);
-            if (boostedHiggs->boostedHiggs.size() < 1)
-            {
-                boostedHiggs->clear();
-                delete boostedHiggs;
-                return 0;
-            }
-            tmp = (boostedHiggs->boostedHiggs)[0];
-            event.hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
-
-            remmantObject = clusterRemmant(boostedHiggs->remmant, parton, 2);
-            event.hardJet = remmantObject.hardJet;
-            event.softHiggs = remmantObject.softHiggs;
-        }
-        else if (type == 2 || type == 3)
-        {
-            boostedHiggs->process(type);
-            if (boostedHiggs->boostedHiggs.size() < 2)
-            {
-                boostedHiggs->clear();
-                delete boostedHiggs;
-                return 0;
-            }
-            tmp = (boostedHiggs->boostedHiggs)[0];
-            event.hardHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
-            tmp = (boostedHiggs->boostedHiggs)[1];
-            event.softHiggs.SetPxPyPzE(tmp.px(), tmp.py(), tmp.pz(), tmp.e());
-
-            remmantObject = clusterRemmant(boostedHiggs->remmant, parton, 1);
-            event.hardJet = remmantObject.hardJet;
-        }
-        if (eventSelector(event))
-        {
-            boostedHiggs->clear();
-            delete boostedHiggs;
-            return (event.hardHiggs + event.softHiggs).M();
-            //cout << (event.hardHiggs + event.softHiggs).M() << endl;
-        }
-        else
-        {
-            delete boostedHiggs;
-            return 0;
-        }
-    }
-    else
-    {
-        delete boostedHiggs;
-        return 0;
-    }
-}
-
 void jetFakePhoton(vector<Jet*> &delphesJet, vector<TLorentzVector> &photon, int nFake)
 {
     vector<Jet*> lightJet, heavyJet;
@@ -384,7 +205,8 @@ void jetFakePhoton(vector<Jet*> &delphesJet, vector<TLorentzVector> &photon, int
     delphesJet = tmp;
 }
 
-double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, TClonesArray *branchMuon, TClonesArray *branchJet)
+double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, 
+            TClonesArray *branchMuon, TClonesArray *branchJet, Cut cut)
 {
     BAChannel *BAEvent = new BAChannel();
     SignalEvent event;
@@ -405,17 +227,26 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
         delphesJet.push_back((Jet*) branchJet->At(i));
     }
     
-    jetFakePhoton(delphesJet, photon, 2);
+    //jetFakePhoton(delphesJet, photon, 1);
 
-    BAEvent->init(finalState, parton, photon, electron, muon, delphesJet);
+    BAEvent->init(finalState, parton, photon, electron, muon, delphesJet, cut);
     BAEvent->process();
     event = BAEvent->signal;
 
-    if (BAEvent->status && (event.hardJet).Pt() > 120 && event.nJet <= 5)
+    if (BAEvent->status && (event.hardJet).Pt() > cut.ptj /* && event.nJet <= 5 && event.higgs1.Pt() > 80 && 
+        event.higgs2.Pt() > 80 */)
     {
-        //inv = event.Ht;
-        inv = event.diHiggsInvM();
-        //inv = 1;
+        if (event.jetList.size() > 1)
+        {
+            inv = event.jetList[1].Pt();
+        }
+        else
+        {
+            inv = 0;
+        }
+        
+        //inv = event.diHiggsInvM();
+
         BAEvent->finish();
         delete BAEvent;
         return inv;
@@ -428,72 +259,13 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
     }
 }
 
-double analyzeTT(TClonesArray *branchJet, TClonesArray *branchElectron, TClonesArray *branchMuon, TClonesArray *branchParticle, TClonesArray *branchMET)
-{
-    vector<Jet*> jet;
-    vector<Electron*> electron;
-    vector<Muon*> muon;
-    vector<GenParticle*> parton;
-    TLorentzVector missP;
-
-    for (int i = 0; i < branchJet->GetEntries(); i++)
-    {
-        jet.push_back((Jet*) branchJet->At(i));
-    }
-    for (int i = 0; i < branchElectron->GetEntries(); i++)
-    {
-        electron.push_back((Electron*) branchElectron->At(i));
-    }
-    for (int i = 0; i < branchMuon->GetEntries(); i++)
-    {
-        muon.push_back((Muon*) branchMuon->At(i));
-    }
-    MissingET *met = (MissingET*) branchMET->At(0);
-    missP.SetPtEtaPhiM(met->MET, met->Eta, met->Phi, 0);
-    
-    BTChannel BTEvent = BTChannel();
-    BTEvent.init(jet, electron, muon, missP);
-    BTEvent.process();
-
-    if (BTEvent.status)
-    {
-        ROOT::Math::Minimizer *mt2 = ROOT::Math::Factory::CreateMinimizer();
-        ROOT::Math::Functor f(&BTEvent, &BTChannel::mTMax, 2);
-        TRandom2 r(5);
-        mt2->SetMaxFunctionCalls(1000000); // for Minuit/Minuit2
-        mt2->SetMaxIterations(10000);  // for GSL
-        mt2->SetTolerance(0.001);
-        mt2->SetPrintLevel(0);
-        mt2->SetFunction(f);
-
-        mt2->SetVariable(0, "x1", 10, 0.01);
-        mt2->SetVariable(1, "x2", 10, 0.01);
-
-        mt2->Minimize();
-        //return mt2->MinValue();
-        if (mt2->MinValue() > 110)
-        {
-            return BTEvent.dihiggsInvM;
-        }
-        else
-        {
-            return 0;
-        }
-    }
-    else
-    {
-        return 0;
-    }
-    
-}
-
 int main(int argc, char *argv[])
 {
-    // Usage: ./eventAnalysis /path/to/hist.root /path/to/inputfile numberOfInputFile histogram name
+    // Usage: ./eventAnalysis /path/to/hist.root /path/to/inputfile numberOfInputFile histogram name cutFile
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
 
-    TH1D *hist = new TH1D(argv[argc - 1], argv[argc - 1], 30, 250, 1000);
+    TH1D *hist = new TH1D(argv[argc - 2], argv[argc - 2], 30, 0, 300);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
@@ -523,29 +295,72 @@ int main(int argc, char *argv[])
     TClonesArray *branchMuon = treeReader->UseBranch("Muon");
     TClonesArray *branchMET = treeReader->UseBranch("MissingET");
 
-    //cout << treeReader->GetEntries() << endl;
     int nEvent = treeReader->GetEntries();
-    cout << nEvent << endl;
-    int n = 0;
+    //cout << nEvent << endl;
+    Cut cut;
+
+    ifstream cutFile(argv[argc - 1]);
+    string tmp, cutName, cutValue;
+
+    while (getline(cutFile, tmp))
+    {
+        int splitIndex = tmp.find_first_of(" ");
+        cutName = tmp.substr(0, splitIndex);
+        cutValue = tmp.substr(splitIndex + 1, tmp.length());
+        if (cutName == "deltaR_bb_max")
+        {
+            cut.deltaR_bb_max = atof(cutValue.c_str());
+        }
+        else if (cutName == "deltaR_bb_min")
+        {
+            cut.deltaR_bb_min = atof(cutValue.c_str());
+        }
+        else if (cutName == "deltaR_aa_max")
+        {
+            cut.deltaR_aa_max = atof(cutValue.c_str());
+        }
+        else if (cutName == "deltaR_aa_min")
+        {
+            cut.deltaR_aa_min = atof(cutValue.c_str());
+        }
+        else if (cutName == "deltaR_ab_max")
+        {
+            cut.deltaR_ab_max = atof(cutValue.c_str());
+        }
+        else if (cutName == "deltaR_ab_min")
+        {
+            cut.deltaR_ab_min = atof(cutValue.c_str());
+        }
+        else if (cutName == "delta_maa")
+        {
+            cut.delta_maa = atof(cutValue.c_str());
+        }
+        else if (cutName == "delta_mbb")
+        {
+            cut.delta_mbb = atof(cutValue.c_str());
+        }
+        else if (cutName == "ptb")
+        {
+            cut.ptb = atof(cutValue.c_str());
+        }
+        else if (cutName == "ptj")
+        {
+            cut.ptj = atof(cutValue.c_str());
+        }
+    }
+
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
-        //cout << iEvent << endl;
-        //double inv = analyseBB(branchJet, branchParticle, branchTower, 1);
-        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet);
-        
-        //double inv = analyzeTT(branchJet, branchElectron, branchMuon, branchParticle, branchMET);
+        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet, cut);
         if (inv > 0)
         {
             hist->Fill(inv);
-            //cout << inv << endl;
-            n += 1;
         }
         treeReader->Clear();
-    }
-    cout << argv[argc - 1] << " " << n << endl;
+    } 
+    //cout << argv[argc - 1] << " " << n << endl;
     hist->Write();
     f->Close();
-
     return 0;
 }

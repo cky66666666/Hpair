@@ -68,7 +68,7 @@ double maxLikelihood(Data data)
 
     minimizer->SetVariable(0, "sigStrength", 1, 0.01);
     minimizer->Minimize();
-    cout << (minimizer->X())[0] << endl;
+    //cout << (minimizer->X())[0] << endl;
     return minimizer->MinValue();
 }
 

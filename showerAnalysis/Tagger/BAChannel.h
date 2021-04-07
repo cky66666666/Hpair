@@ -38,9 +38,11 @@ private:
     vector<Jet*> delphesJet;
     vector<HiggsCand> higgsCandListA, higgsCandListB;
     vector<TLorentzVector> photonPair, bPair;
+    Cut cut;
     
     HiggsCand higgsSelector(vector<HiggsCand>);
     int flavourAssociation(TLorentzVector);
+    vector<TLorentzVector> ptSort(vector<TLorentzVector>);
     bool trigger();
 
 public:
@@ -50,7 +52,7 @@ public:
     BAChannel();
     ~BAChannel();
 
-    void init(vector<PseudoJet>, vector<GenParticle*>, vector<TLorentzVector>, vector<TLorentzVector>, vector<TLorentzVector>, vector<Jet*>);
+    void init(vector<PseudoJet>, vector<GenParticle*>, vector<TLorentzVector>, vector<TLorentzVector>, vector<TLorentzVector>, vector<Jet*>, Cut cut);
     void preprocess();
     void selPhotonPair();
     void selBPair();

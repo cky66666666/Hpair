@@ -33,12 +33,13 @@ class SignalEvent
 public:
     TLorentzVector higgs1, higgs2, hardJet;
     TLorentzVector b1, b2, other1, other2;
+    vector<TLorentzVector> jetList;
     int nJet;
     double Ht;
 
     SignalEvent()
     {
-
+        jetList = {};
     }
     ~SignalEvent()
     {
@@ -46,6 +47,33 @@ public:
     }
 
     double diHiggsInvM(void);
+};
+
+struct Cut
+{
+    Cut()
+    {
+        deltaR_bb_max = 2.0;
+        deltaR_bb_min = 0.4;
+        deltaR_aa_max = 2.0;
+        deltaR_aa_min = 0.4;
+        deltaR_ab_max = 2.0;
+        deltaR_ab_min = 0.4;
+        delta_maa = 3.0;
+        delta_mbb = 25.0;
+        ptb = 40.0;
+        ptj = 100.0;
+    }
+    double deltaR_bb_max;
+    double deltaR_bb_min;
+    double deltaR_aa_max;
+    double deltaR_aa_min;
+    double deltaR_ab_max;
+    double deltaR_ab_min;
+    double delta_maa;
+    double delta_mbb;
+    double ptb;
+    double ptj;
 };
 
 

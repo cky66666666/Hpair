@@ -6,14 +6,23 @@
 #include "TChain.h"
 #include "TClonesArray.h"
 #include "TH1D.h"
+#include "TH2D.h"
 #include "THStack.h"
 #include "TLorentzVector.h"
+#include "TVector3.h"
 #include "algorithm"
 
 #define MH 125
 #define NBIN 50
 #define BEGIN 250
 #define END 1000
+
+#define NBIN_INV 10
+#define BEGIN_INV 250
+#define END_INV 1000
+#define NBIN_THETA 10
+#define BEGIN_THETA 0
+#define END_THETA 3.1415926
 
 using namespace std;
 
@@ -148,6 +157,34 @@ TH1D* drawHist(ExRootTreeReader *treeReader, char histName[], double scale, doub
     return histInvMass;
 }
 
+TH2D* invThetaHist(ExRootTreeReader *treeReader, char histName[], double scale)
+{
+    TClonesArray *branchParticles = treeReader->UseBranch("Particle");
+    MyEvent event;
+    double inv, theta;
+    TLorentzVector higgs;
+    TVector3 vecHiggs;
+
+    TH2D *invTheta = new TH2D(histName, histName, NBIN_INV, BEGIN_INV, END_INV, NBIN_THETA, BEGIN_THETA, END_THETA);
+
+    for (int iEvent = 0; iEvent < treeReader->GetEntries(); iEvent++)
+    {
+        treeReader->ReadEntry(iEvent);
+        event = eventCons(branchParticles);
+
+        if (true)
+        {
+            inv = (event.bJet1 + event.bJet2 + event.photon1 + event.photon2).M();
+            higgs = event.photon1 + event.photon2;
+            vecHiggs.SetXYZ(higgs.X(), higgs.Y(), higgs.Z());
+            theta = (event.bJet1 + event.bJet2).Angle(vecHiggs);
+            invTheta->Fill(inv, theta);
+        }
+        
+    }
+    return invTheta;
+}
+
 TH1D* bkgAnalyzer(vector<string> bkgTreeName_s, vector<string> bkgInputFile_s, vector<double> xSectionBkg, double ptj)
 {
     char histName[20];
@@ -175,15 +212,15 @@ TH1D* bkgAnalyzer(vector<string> bkgTreeName_s, vector<string> bkgInputFile_s, v
 
 int main(int argc, char *argv[])
 {
-    vector<string> sigTreeName_s = {"kappa=-1"/* , "kappa=1", "kappa=3" */};
-    vector<string> sigHistName_s = {"kappa=-1", "kappa=1", "kappa=3"};
-    vector<string> sigInputFile_s = {"../events/sig_aa_-1_10_28.root", "../events/sig_aa_1_10_28.root", "../events/sig_aa_3_10_28.root"};
+    vector<string> sigTreeName_s = {"kappa=3"/* , "kappa=1", "kappa=3" */};
+    vector<string> sigHistName_s = {"kappa=3"};
+    vector<string> sigInputFile_s = {"../events/sig_aa_3_10_100.root"};
 
     vector<string> bkgInputFile_s = {"../events/bkg_aa_3jh_20_28.root", "../events/bkg_aa_bbaa_10_28.root", 
                                     "../events/bkg_aa_tth_10_28.root", "../events/bkg_aa_zh_10_28.root"};
     vector<string> bkgTreeName_s = {"bkg_3jh", "bkg_bbaa", "bkg_tth", "bkg_zh"};
 
-    vector<double> ptjList = {100, 150, 200};
+    vector<double> ptjList = {100};
 
     const double braRatio = 2 * 0.5809 * 0.00227;
     const double lumi = 3000;
@@ -192,6 +229,8 @@ int main(int argc, char *argv[])
 
     vector<int> nEvent;
     THStack *stackInvMass = new THStack("InvMass", "InvMass");
+    TH2D *invTheta = new TH2D();
+
     for (int j = 0; j < ptjList.size(); j++)
     {
         char tmp[10];
@@ -207,22 +246,22 @@ int main(int argc, char *argv[])
             ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
 
             string tmp1 = sigHistName_s[i] + tmp;
-            cout << sigHistName_s[i] << endl;
             strcpy(histName, tmp1.c_str());
+            invTheta = invThetaHist(treeReader, histName, 1);
+            //stackInvMass->Add(drawHist(treeReader, histName, xSectionSignal[i], ptjList[j]));
 
-            stackInvMass->Add(drawHist(treeReader, histName, xSectionSignal[i], ptjList[j]));
-            /* stackInvMass->Add(drawHist(treeReader, treeName, 200));
-            stackInvMass->Add(drawHist(treeReader, treeName, 300)); */
             //nEvent.push_back(drawHist(treeReader, nTree[i]));
             delete chain;
             delete treeReader;
         } 
 
-        stackInvMass->Add(bkgAnalyzer(bkgTreeName_s, bkgInputFile_s, xSectionBkg, ptjList[j]));
+        //stackInvMass->Add(bkgAnalyzer(bkgTreeName_s, bkgInputFile_s, xSectionBkg, ptjList[j]));
     }
+
+    cout << invTheta->GetEntries() << endl;
     
-    TFile f("../hist/hist.root", "RECREATE");
-    stackInvMass->Write();
+    TFile f("../hist/invTheta_2.root", "RECREATE");
+    invTheta->Write();
     f.Close();
     return 0;
 }
