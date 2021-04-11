@@ -4,7 +4,9 @@ deltaR_aa_max 2.0
 deltaR_aa_min 0.4
 deltaR_ab_max 2.0
 deltaR_ab_min 0.4
-delta_maa 1
-delta_mbb 25
+delta_maa 3
+delta_mbb 35
 ptb 40.0
-ptj 100
+ptj 150
+nlpt 100
+nnlpt 50

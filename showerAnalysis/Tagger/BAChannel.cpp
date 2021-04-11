@@ -247,8 +247,8 @@ void BAChannel::process()
         }        
         if (photonPair.size() == 2 && bPair.size() == 2 && lightJet.size() > 0)
         {
-            if ((bPair[0].Pt() > bPair[1].Pt() && bPair[0].Pt() > 40 && bPair[1].Pt() > 30) 
-            || (bPair[0].Pt() < bPair[1].Pt() && bPair[0].Pt() > 30 && bPair[1].Pt() > 40))
+            if (/* (bPair[0].Pt() > bPair[1].Pt() && bPair[0].Pt() > 40 && bPair[1].Pt() > 30) 
+            || (bPair[0].Pt() < bPair[1].Pt() && bPair[0].Pt() > 30 && bPair[1].Pt() > 40) */ true)
             {
                 signal.b1 = bPair[0];
                 signal.b2 = bPair[1];

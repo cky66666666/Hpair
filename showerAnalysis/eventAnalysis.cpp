@@ -227,36 +227,33 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
         delphesJet.push_back((Jet*) branchJet->At(i));
     }
     
-    //jetFakePhoton(delphesJet, photon, 1);
+    //jetFakePhoton(delphesJet, photon, 2);
 
     BAEvent->init(finalState, parton, photon, electron, muon, delphesJet, cut);
     BAEvent->process();
     event = BAEvent->signal;
 
-    if (BAEvent->status && (event.hardJet).Pt() > cut.ptj /* && event.nJet <= 5 && event.higgs1.Pt() > 80 && 
+    if (BAEvent->status && (event.hardJet).Pt() > cut.ptj && event.nJet <= 6 /* && event.higgs1.Pt() > 80 && 
         event.higgs2.Pt() > 80 */)
     {
-        if (event.jetList.size() > 1)
+        //inv = event.diHiggsInvM();
+        if (event.jetList.size() < 3) return event.diHiggsInvM();
+        if (event.jetList[1].Pt() < cut.nljet && event.jetList[2].Pt() < cut.nnljet)
         {
-            inv = event.jetList[1].Pt();
+            inv = event.diHiggsInvM();
         }
         else
         {
             inv = 0;
         }
-        
-        //inv = event.diHiggsInvM();
-
-        BAEvent->finish();
-        delete BAEvent;
-        return inv;
     }
     else
     {
-        BAEvent->finish();
-        delete BAEvent;
-        return 0;
+        inv = 0;
     }
+    BAEvent->finish();
+    delete BAEvent;
+    return inv;
 }
 
 int main(int argc, char *argv[])
@@ -265,7 +262,7 @@ int main(int argc, char *argv[])
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
 
-    TH1D *hist = new TH1D(argv[argc - 2], argv[argc - 2], 30, 0, 300);
+    TH1D *hist = new TH1D(argv[argc - 2], argv[argc - 2], 30, 250, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
@@ -347,6 +344,16 @@ int main(int argc, char *argv[])
         {
             cut.ptj = atof(cutValue.c_str());
         }
+        else if (cutName == "nljet")
+        {
+            cut.nljet = atof(cutValue.c_str());
+        }
+        else if (cutName == "nnljet")
+        {
+            cut.nnljet = atof(cutValue.c_str());
+        }
+        
+        
     }
 
     for (int iEvent = 0; iEvent < nEvent; iEvent++)

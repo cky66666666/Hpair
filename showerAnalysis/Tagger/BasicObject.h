@@ -63,6 +63,8 @@ struct Cut
         delta_mbb = 25.0;
         ptb = 40.0;
         ptj = 100.0;
+        nljet = 1000.0;
+        nnljet = 1000.0;
     }
     double deltaR_bb_max;
     double deltaR_bb_min;
@@ -74,6 +76,8 @@ struct Cut
     double delta_mbb;
     double ptb;
     double ptj;
+    double nljet;
+    double nnljet;
 };
 
 
