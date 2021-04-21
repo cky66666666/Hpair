@@ -49,6 +49,58 @@ void BAChannel::init(vector<PseudoJet> finalState, vector<GenParticle*> parton, 
     this->delphesJet = delphesJet;
 }
 
+double BAChannel::thrustTarget(const double *angle)
+{
+    const double phi = angle[0];
+    const double theta = angle[1];
+    TVector3 nHat(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+    double result = 0, norm = 0;
+    vector<vector<TLorentzVector>> tmp = {photon, electron, muon, lightJet, bJet};
+    vector<TLorentzVector> objectList = combineVector(tmp);
+    for (int i = 0; i < objectList.size(); i++)
+    {
+        result += objectList[i].Vect().Dot(nHat);
+        norm += objectList[i].Vect().Mag();
+    }
+    return -result / norm;
+}
+
+double BAChannel::chi2(TLorentzVector j1, TLorentzVector j2, TLorentzVector b)
+{
+    return pow((j1 + j2).M() - 80.419, 2) / 2 / 25 + pow((j1 + j2 + b).M() - 173.3, 2) / 2 / 25;
+}
+
+double BAChannel::topness()
+{
+    lightJet = ptSort(lightJet);
+    double top;
+    if (lightJet.size() >= 3)
+    {
+        top = chi2(lightJet[1], lightJet[2], bJet[0]);
+    }
+    else
+    {
+        top = 49999;
+    }
+    
+
+    for (int i = 0; i < bJet.size(); i++)
+    {
+        for (int j = 1; j < lightJet.size(); j++)
+        {
+            for (int k = j + 1; k < lightJet.size(); k++)
+            {
+                double tmp = chi2(lightJet[j], lightJet[k], bJet[i]);
+                if (tmp < top)
+                {
+                    top = tmp;
+                }
+            }
+        }
+    }
+    return top;
+}
+
 bool BAChannel::trigger()
 {
     for (int i = 0; i < electron.size(); i++)
@@ -259,6 +311,7 @@ void BAChannel::process()
 
                 signal.jetList = ptSort(lightJet);
                 signal.hardJet = signal.jetList[0];
+                signal.topness = topness();
             }
             else
             {

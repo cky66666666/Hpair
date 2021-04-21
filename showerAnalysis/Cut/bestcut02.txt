@@ -8,5 +8,7 @@ delta_maa 3
 delta_mbb 35
 ptb 40.0
 ptj 150
-nlpt 125
-nnlpt 50
+nljet 100
+nnljet 60
+fakePhoton 0
+fakebJet 0

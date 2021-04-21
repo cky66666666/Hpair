@@ -9,6 +9,10 @@
 #include "vector"
 #include "BoostedHiggs.h"
 #include "BasicObject.h"
+#include "TVector3.h"
+#include "Math/Minimizer.h"
+#include "Math/Functor.h"
+#include "Math/Factory.h"
 
 using namespace std;
 using namespace fastjet;
@@ -44,6 +48,7 @@ private:
     int flavourAssociation(TLorentzVector);
     vector<TLorentzVector> ptSort(vector<TLorentzVector>);
     bool trigger();
+    double topness(), chi2(TLorentzVector, TLorentzVector, TLorentzVector);
 
 public:
     SignalEvent signal;
@@ -52,6 +57,7 @@ public:
     BAChannel();
     ~BAChannel();
 
+    double thrustTarget(const double*);
     void init(vector<PseudoJet>, vector<GenParticle*>, vector<TLorentzVector>, vector<TLorentzVector>, vector<TLorentzVector>, vector<Jet*>, Cut cut);
     void preprocess();
     void selPhotonPair();

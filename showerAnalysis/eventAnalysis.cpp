@@ -205,6 +205,31 @@ void jetFakePhoton(vector<Jet*> &delphesJet, vector<TLorentzVector> &photon, int
     delphesJet = tmp;
 }
 
+void fakeBJet(vector<Jet*> delphesJet, int nFake)
+{
+    int nJet = 0;
+    for (int i = 0; i < delphesJet.size(); i++)
+    {
+        if (delphesJet[i]->BTag != 1)
+        {
+            nJet += 1;
+        }
+    }
+    if (nJet < nFake) return;
+    
+    int fake = 0;
+    while (fake < nFake)
+    {
+        int iFake = rand() % (delphesJet.size());
+        if (delphesJet[iFake]->BTag != 1)
+        {
+            delphesJet[iFake]->BTag = 1;
+            fake += 1;
+        }
+    }
+    
+}
+
 double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, 
             TClonesArray *branchMuon, TClonesArray *branchJet, Cut cut)
 {
@@ -227,25 +252,44 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
         delphesJet.push_back((Jet*) branchJet->At(i));
     }
     
-    //jetFakePhoton(delphesJet, photon, 2);
+    jetFakePhoton(delphesJet, photon, cut.fakePhoton);
+    fakeBJet(delphesJet, cut.fakebJet);
 
     BAEvent->init(finalState, parton, photon, electron, muon, delphesJet, cut);
     BAEvent->process();
     event = BAEvent->signal;
 
     if (BAEvent->status && (event.hardJet).Pt() > cut.ptj && event.nJet <= 6 /* && event.higgs1.Pt() > 80 && 
-        event.higgs2.Pt() > 80 */)
+        event.higgs2.Pt() > 80 && max(event.b1.Pt(), event.b2.Pt()) > 100 && min(event.b1.Pt(), event.b2.Pt()) > 75 */)
     {
-        //inv = event.diHiggsInvM();
-        if (event.jetList.size() < 3) return event.diHiggsInvM();
-        if (event.jetList[1].Pt() < cut.nljet && event.jetList[2].Pt() < cut.nnljet)
+        ROOT::Math::Minimizer *minimizer = ROOT::Math::Factory::CreateMinimizer();
+        ROOT::Math::Functor f(BAEvent, &BAChannel::thrustTarget, 2);
+        
+        minimizer->SetMaxFunctionCalls(1000000); // for Minuit/Minuit2
+        minimizer->SetMaxIterations(10000);  // for GSL
+        minimizer->SetTolerance(0.001);
+        minimizer->SetPrintLevel(0);
+        minimizer->SetFunction(f);
+
+        minimizer->SetVariable(0, "phi", 1, 0.01);
+        minimizer->SetVariable(1, "theta", 1, 0.01);
+        minimizer->Minimize();
+
+        event.thrust = -minimizer->MinValue();
+        /* if (event.jetList.size() >= 3 && event.topness > 1000)
+        {
+            inv = event.diHiggsInvM();
+        }
+        else if (event.jetList.size() < 3)
         {
             inv = event.diHiggsInvM();
         }
         else
         {
             inv = 0;
-        }
+        } */
+        inv = event.topness;
+        //inv = event.diHiggsInvM();
     }
     else
     {
@@ -262,7 +306,7 @@ int main(int argc, char *argv[])
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
 
-    TH1D *hist = new TH1D(argv[argc - 2], argv[argc - 2], 30, 250, 1000);
+    TH1D *hist = new TH1D(argv[argc - 2], argv[argc - 2], 50, 0, 1000);
     TFile *f = new TFile(argv[1], "RECREATE");
 
     TChain *chain = new TChain("Delphes");
@@ -352,8 +396,14 @@ int main(int argc, char *argv[])
         {
             cut.nnljet = atof(cutValue.c_str());
         }
-        
-        
+        else if (cutName == "fakePhoton")
+        {
+            cut.fakePhoton = atof(cutValue.c_str());
+        }
+        else if (cutName == "fakebJet")
+        {
+            cut.fakebJet = atof(cutValue.c_str());
+        }
     }
 
     for (int iEvent = 0; iEvent < nEvent; iEvent++)

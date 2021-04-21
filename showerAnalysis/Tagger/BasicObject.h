@@ -4,6 +4,9 @@
 #include "vector"
 #include "TLorentzVector.h"
 #include "classes/DelphesClasses.h"
+#include "Math/Minimizer.h"
+#include "Math/Functor.h"
+#include "Math/Factory.h"
 
 using namespace std;
 
@@ -35,7 +38,7 @@ public:
     TLorentzVector b1, b2, other1, other2;
     vector<TLorentzVector> jetList;
     int nJet;
-    double Ht;
+    double Ht, thrust, topness;
 
     SignalEvent()
     {
@@ -65,6 +68,7 @@ struct Cut
         ptj = 100.0;
         nljet = 1000.0;
         nnljet = 1000.0;
+        fakePhoton = fakebJet = 0;
     }
     double deltaR_bb_max;
     double deltaR_bb_min;
@@ -78,6 +82,7 @@ struct Cut
     double ptj;
     double nljet;
     double nnljet;
+    int fakePhoton, fakebJet;
 };
 
 
