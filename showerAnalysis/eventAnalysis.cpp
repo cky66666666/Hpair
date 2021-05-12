@@ -230,7 +230,7 @@ void fakeBJet(vector<Jet*> delphesJet, int nFake)
     
 }
 
-double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, 
+SignalEvent analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClonesArray *branchPhoton, TClonesArray *branchElectron, 
             TClonesArray *branchMuon, TClonesArray *branchJet, Cut cut)
 {
     BAChannel *BAEvent = new BAChannel();
@@ -258,46 +258,23 @@ double analyseAA(TClonesArray *branchParticle, TClonesArray *branchTower, TClone
     BAEvent->init(finalState, parton, photon, electron, muon, delphesJet, cut);
     BAEvent->process();
     event = BAEvent->signal;
+    /* ROOT::Math::Minimizer *minimizer = ROOT::Math::Factory::CreateMinimizer();
+    ROOT::Math::Functor f(BAEvent, &BAChannel::thrustTarget, 2);
+    
+    minimizer->SetMaxFunctionCalls(1000000); // for Minuit/Minuit2
+    minimizer->SetMaxIterations(10000);  // for GSL
+    minimizer->SetTolerance(0.001);
+    minimizer->SetPrintLevel(0);
+    minimizer->SetFunction(f);
 
-    if (BAEvent->status && (event.hardJet).Pt() > cut.ptj && event.nJet <= 6 /* && event.higgs1.Pt() > 80 && 
-        event.higgs2.Pt() > 80 && max(event.b1.Pt(), event.b2.Pt()) > 100 && min(event.b1.Pt(), event.b2.Pt()) > 75 */)
-    {
-        ROOT::Math::Minimizer *minimizer = ROOT::Math::Factory::CreateMinimizer();
-        ROOT::Math::Functor f(BAEvent, &BAChannel::thrustTarget, 2);
-        
-        minimizer->SetMaxFunctionCalls(1000000); // for Minuit/Minuit2
-        minimizer->SetMaxIterations(10000);  // for GSL
-        minimizer->SetTolerance(0.001);
-        minimizer->SetPrintLevel(0);
-        minimizer->SetFunction(f);
+    minimizer->SetVariable(0, "phi", 1, 0.01);
+    minimizer->SetVariable(1, "theta", 1, 0.01);
+    minimizer->Minimize();
 
-        minimizer->SetVariable(0, "phi", 1, 0.01);
-        minimizer->SetVariable(1, "theta", 1, 0.01);
-        minimizer->Minimize();
-
-        event.thrust = -minimizer->MinValue();
-        /* if (event.jetList.size() >= 3 && event.topness > 1000)
-        {
-            inv = event.diHiggsInvM();
-        }
-        else if (event.jetList.size() < 3)
-        {
-            inv = event.diHiggsInvM();
-        }
-        else
-        {
-            inv = 0;
-        } */
-        inv = event.topness;
-        //inv = event.diHiggsInvM();
-    }
-    else
-    {
-        inv = 0;
-    }
+    event.thrust = -minimizer->MinValue(); */
     BAEvent->finish();
     delete BAEvent;
-    return inv;
+    return event;
 }
 
 int main(int argc, char *argv[])
@@ -306,8 +283,20 @@ int main(int argc, char *argv[])
 
     //gSystem->Load("/mnt/d/work/Hpair/Delphes/libDelphes");
 
-    TH1D *hist = new TH1D(argv[argc - 2], argv[argc - 2], 50, 0, 1000);
-    TFile *f = new TFile(argv[1], "RECREATE");
+    /* TH1D *hist = new TH1D(argv[argc - 2], argv[argc - 2], 30, 250, 1000);
+    TFile *f = new TFile(argv[1], "RECREATE"); */
+
+    TH1D *histInvM = new TH1D((string(argv[argc - 2]) + string("_InvMass")).c_str(), "InvMass", 50, 250, 1750);
+    TH1D *histDeltaPhi = new TH1D((string(argv[argc - 2]) + string("_DeltaPhi")).c_str(), "DeltaPhi", 30, 0, pi);
+    TH1D *histBJetRatio = new TH1D((string(argv[argc - 2]) + string("_BJetRatio")).c_str(), "BJetRatio", 20, 0, 1);
+    TH1D *histNLJet = new TH1D((string(argv[argc - 2]) + string("_NLJet")).c_str(), "NLJet", 20, 0, 1);
+    TH1D *histN2LJet = new TH1D((string(argv[argc - 2]) + string("_N2LJet")).c_str(), "N2LJet", 20, 0, 1);
+    TH1D *histN3LJet = new TH1D((string(argv[argc - 2]) + string("_N3LJet")).c_str(), "N3LJet", 20, 0, 1);
+    TH1D *histTopness = new TH1D((string(argv[argc - 2]) + string("_Topness")).c_str(), "Topness", 100, 0, 50);
+    TH1D *histTopness2 = new TH1D((string(argv[argc - 2]) + string("_Topness2")).c_str(), "Topness2", 100, 0, 50);
+    TH1D *histThrust = new TH1D((string(argv[argc - 2]) + string("_Thrust")).c_str(), "Thrust", 20, 0, 1);
+    TH1D *histDihedralAngle = new TH1D((string(argv[argc - 2]) + string("_DihedralAngle")).c_str(), "DihedralAngle", 20, 0, 1);
+    TH1D *histHRatio = new TH1D((string(argv[argc - 2]) + string("_HRatio")).c_str(), "HRatio", 20, 0, 4);
 
     TChain *chain = new TChain("Delphes");
     int nData = (int) *argv[3] - 48;
@@ -342,6 +331,7 @@ int main(int argc, char *argv[])
 
     ifstream cutFile(argv[argc - 1]);
     string tmp, cutName, cutValue;
+    SignalEvent event;
 
     while (getline(cutFile, tmp))
     {
@@ -388,14 +378,6 @@ int main(int argc, char *argv[])
         {
             cut.ptj = atof(cutValue.c_str());
         }
-        else if (cutName == "nljet")
-        {
-            cut.nljet = atof(cutValue.c_str());
-        }
-        else if (cutName == "nnljet")
-        {
-            cut.nnljet = atof(cutValue.c_str());
-        }
         else if (cutName == "fakePhoton")
         {
             cut.fakePhoton = atof(cutValue.c_str());
@@ -404,20 +386,84 @@ int main(int argc, char *argv[])
         {
             cut.fakebJet = atof(cutValue.c_str());
         }
+        else if (cutName == "topness")
+        {
+            cut.topness = atof(cutValue.c_str());
+        }
+        else if (cutName == "topness2")
+        {
+            cut.topness2 = atof(cutValue.c_str());
+        }
+        else if (cutName == "deltaPhi")
+        {
+            cut.deltaPhi = atof(cutValue.c_str());
+        }
+        else if (cutName == "HRatio")
+        {
+            cut.HRatio = atof(cutValue.c_str());
+        }
     }
 
     for (int iEvent = 0; iEvent < nEvent; iEvent++)
     {
         treeReader->ReadEntry(iEvent);
-        double inv = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet, cut);
-        if (inv > 0)
+        event = analyseAA(branchParticle, branchTower, branchPhoton, branchElectron, branchMuon, branchJet, cut);
+
+        if (event.status && event.hardJet.Pt() > cut.ptj/*  && event.deltaPhi > cut.deltaPhi */)
         {
-            hist->Fill(inv);
+            if (event.jetList.size() <= 4 /* && event.deltaPhi > 0.8 */)
+            {
+                //histDeltaPhi->Fill(event.deltaPhi);
+                //histHRatio->Fill(max(event.higgs1.Pt(), event.higgs2.Pt()) / event.hardJet.Pt()); 
+                //histThrust->Fill(event.thrust);
+                histInvM->Fill(event.diHiggsInvM());
+            }
+            else if (event.jetList.size() > 4 && event.topness2 > cut.topness2 /* && event.deltaPhi > 1 */)
+            {
+                /* histNLJet->Fill(event.jetList[1].Pt() / event.jetList[0].Pt());
+                histN2LJet->Fill(event.jetList[2].Pt() / event.jetList[0].Pt());
+                histN3LJet->Fill(event.jetList[3].Pt() / event.jetList[0].Pt()); */
+                //histTopness2->Fill(event.topness2);
+                //histBJetRatio->Fill(event.b1.E() / (event.b1.E() + event.b2.E()));
+                //histDeltaPhi->Fill(event.deltaPhi);
+                //histHRatio->Fill(max(event.higgs1.Pt(), event.higgs2.Pt()) / event.hardJet.Pt());
+                histInvM->Fill(event.diHiggsInvM());
+                //histTopness->Fill(event.topness);
+            }
+            /* histDeltaPhi->Fill(event.deltaPhi);
+            histHRatio->Fill(max(event.higgs1.Pt(), event.higgs2.Pt()) / event.hardJet.Pt()); */
         }
-        treeReader->Clear();
     } 
     //cout << argv[argc - 1] << " " << n << endl;
-    hist->Write();
-    f->Close();
+    TFile *fInvM = new TFile((string("../histogram/InvMass/") + string(argv[1])).c_str(), "RECREATE");
+    histInvM->Write();
+    fInvM->Close();
+    /* TFile *fHRatio = new TFile((string("../histogram/HRatio/") + string(argv[1])).c_str(), "RECREATE");
+    histHRatio->Write();
+    fHRatio->Close(); */
+    /* TFile *fDeltaPhi = new TFile((string("../histogram/DeltaPhi/") + string(argv[1])).c_str(), "RECREATE");
+    histDeltaPhi->Write();
+    fDeltaPhi->Close(); */
+    /* TFile *fBJetRatio = new TFile((string("../histogram/BJetRatio/") + string(argv[1])).c_str(), "RECREATE");
+    histBJetRatio->Write();
+    fBJetRatio->Close(); */
+    /*TFile *fNLJet = new TFile((string("../histogram/NLJet/") + string(argv[1])).c_str(), "RECREATE");
+    histNLJet->Write();
+    fNLJet->Close();
+    TFile *fN2LJet = new TFile((string("../histogram/N2LJet/") + string(argv[1])).c_str(), "RECREATE");
+    histN2LJet->Write();
+    fN2LJet->Close();
+    TFile *fN3LJet = new TFile((string("../histogram/N3LJet/") + string(argv[1])).c_str(), "RECREATE");
+    histN3LJet->Write();
+    fN3LJet->Close(); */
+    /* TFile *fTopness = new TFile((string("../histogram/Topness/") + string(argv[1])).c_str(), "RECREATE");
+    histTopness->Write();
+    fTopness->Close();
+    TFile *fTopness2 = new TFile((string("../histogram/Topness2/") + string(argv[1])).c_str(), "RECREATE");
+    histTopness2->Write();
+    fTopness2->Close(); */
+    /*TFile *fThrust = new TFile((string("../histogram/Thrust/") + string(argv[1])).c_str(), "RECREATE");
+    histThrust->Write();
+    fThrust->Close();*/
     return 0;
 }

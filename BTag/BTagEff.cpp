@@ -33,6 +33,8 @@ int main(int argc, char *argv[])
     ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
     TClonesArray *branchJet = treeReader->UseBranch("Jet");
     TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
+    TClonesArray *branchElectron = treeReader->UseBranch("Electron");
+    TClonesArray *branchMuon = treeReader->UseBranch("Muon");
 
     int diBJet = 0, singleB = 0;
     int diPhoton = 0, singlePhoton = 0;
@@ -42,14 +44,21 @@ int main(int argc, char *argv[])
         treeReader->ReadEntry(i);
         int nBJet = coutBJet(branchJet);
         int nPhoton = branchPhoton->GetEntries();
-        if (nPhoton == 1)
+        int nLepton = branchElectron->GetEntries() + branchMuon->GetEntries();
+        /* if (nBJet == 1)
         {
             singlePhoton += 1;
         }
-        else if (nPhoton == 2)
+        else if (nBJet == 2)
         {
             diPhoton += 1;
+        } */
+        if (nLepton > 0)
+        {
+            singlePhoton += 1;
         }
+        
+        
     }
     cout << argv[1] << " " << "SinglePhoton:" << singlePhoton << " " << "diPhoton:" << diPhoton << " " << "PhotonEff:" << (diPhoton + 0.5 * singlePhoton) / 10000 << endl;
 

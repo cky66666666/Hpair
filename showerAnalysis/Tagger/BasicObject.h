@@ -37,8 +37,9 @@ public:
     TLorentzVector higgs1, higgs2, hardJet;
     TLorentzVector b1, b2, other1, other2;
     vector<TLorentzVector> jetList;
+    bool status;
     int nJet;
-    double Ht, thrust, topness;
+    double Ht, thrust, topness, dih_bbaa, deltaPhi, topness2;
 
     SignalEvent()
     {
@@ -56,19 +57,20 @@ struct Cut
 {
     Cut()
     {
-        deltaR_bb_max = 2.0;
-        deltaR_bb_min = 0.4;
-        deltaR_aa_max = 2.0;
-        deltaR_aa_min = 0.4;
-        deltaR_ab_max = 2.0;
-        deltaR_ab_min = 0.4;
-        delta_maa = 3.0;
-        delta_mbb = 25.0;
-        ptb = 40.0;
-        ptj = 100.0;
-        nljet = 1000.0;
-        nnljet = 1000.0;
+        deltaR_bb_max = 100.0;
+        deltaR_bb_min = 0.0;
+        deltaR_aa_max = 100.0;
+        deltaR_aa_min = 0.0;
+        deltaR_ab_max = 100.0;
+        deltaR_ab_min = 0.0;
+        delta_maa = 100000.0;
+        delta_mbb = 100000.0;
+        ptb = 0.0;
+        ptj = 0.0;
         fakePhoton = fakebJet = 0;
+        topness = 0;
+        topness2 = 0;
+        deltaPhi = HRatio = 0;
     }
     double deltaR_bb_max;
     double deltaR_bb_min;
@@ -80,9 +82,10 @@ struct Cut
     double delta_mbb;
     double ptb;
     double ptj;
-    double nljet;
-    double nnljet;
+    double topness, topness2;
     int fakePhoton, fakebJet;
+    double deltaPhi;
+    double HRatio;
 };
 
 

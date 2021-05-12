@@ -18,7 +18,7 @@ vector<double> histConverter(TH1D*, double, int);
 double logfac(int);
 double maxLikelihood(Data);
 vector<double> addVec(vector<double>, vector<double>);
-vector<vector<double>> sigmaCalc(vector<vector<double>>, vector<double>, vector<double>, vector<int>);
+vector<vector<double>> sigmaCalc(vector<vector<double>>, vector<double>, vector<double>, vector<float>);
 
 class LikelihoodFunc
 {

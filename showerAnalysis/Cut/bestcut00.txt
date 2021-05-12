@@ -5,10 +5,11 @@ deltaR_aa_min 0.4
 deltaR_ab_max 2.0
 deltaR_ab_min 0.4
 delta_maa 3
-delta_mbb 35
+delta_mbb 30
 ptb 40.0
-ptj 150
-nljet 100
-nnljet 60
+ptj 120
+topness 1
+topness2 4
+deltaPhi 1.2
 fakePhoton 0
 fakebJet 0

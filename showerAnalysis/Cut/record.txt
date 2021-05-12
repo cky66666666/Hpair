@@ -1,0 +1,23 @@
+no cut
+2.593
+4.857
+
+nJet 6
+significance
+2.618
+4.764
+
+topness 10
+significance
+2.419
+4.722
+
+topness 2
+topness2 10
+significance
+2.614
+4.927
+
+topness2 3.5
+2.660
+4.927

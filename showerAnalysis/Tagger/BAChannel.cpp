@@ -67,30 +67,20 @@ double BAChannel::thrustTarget(const double *angle)
 
 double BAChannel::chi2(TLorentzVector j1, TLorentzVector j2, TLorentzVector b)
 {
-    return pow((j1 + j2).M() - 80.419, 2) / 2 / 25 + pow((j1 + j2 + b).M() - 173.3, 2) / 2 / 25;
+    return pow((j1 + j2).M() - 81.8653, 2) / 10.81 / 10.81 + pow((j1 + j2 + b).M() - 181.505, 2) / 31.0125 / 31.0125;
 }
 
 double BAChannel::topness()
 {
-    lightJet = ptSort(lightJet);
-    double top;
-    if (lightJet.size() >= 3)
-    {
-        top = chi2(lightJet[1], lightJet[2], bJet[0]);
-    }
-    else
-    {
-        top = 49999;
-    }
+    double top = chi2(lightJet[1], lightJet[2], bPair[0]);
     
-
-    for (int i = 0; i < bJet.size(); i++)
+    for (int i = 0; i < bPair.size(); i++)
     {
         for (int j = 1; j < lightJet.size(); j++)
         {
             for (int k = j + 1; k < lightJet.size(); k++)
             {
-                double tmp = chi2(lightJet[j], lightJet[k], bJet[i]);
+                double tmp = chi2(lightJet[j], lightJet[k], bPair[i]);
                 if (tmp < top)
                 {
                     top = tmp;
@@ -99,6 +89,59 @@ double BAChannel::topness()
         }
     }
     return top;
+}
+
+double BAChannel::topness2()
+{
+    double top = chi2(lightJet[1], lightJet[2], bPair[0]) + chi2(lightJet[3], lightJet[4], bPair[1]);
+
+    for (int i = 0; i < bPair.size(); i++)
+    {
+        for (int j = 1; j < lightJet.size(); j++)
+        {
+            for (int k = j + 1; k < lightJet.size(); k++)
+            {
+                vector<TLorentzVector> tmp1 = lightJet;
+                tmp1.erase(tmp1.begin() + k);
+                tmp1.erase(tmp1.begin() + j);
+                for (int l = 1; l < tmp1.size(); l++)
+                {
+                    for (int m = l + 1; m < tmp1.size(); m++)
+                    {
+                        double tmp;
+                        if (i == 0)
+                        {
+                            tmp = chi2(lightJet[j], lightJet[k], bPair[0]) + chi2(tmp1[l], tmp1[m], bPair[1]);
+                        }
+                        else
+                        {
+                            tmp = chi2(lightJet[j], lightJet[k], bPair[1]) + chi2(tmp1[l], tmp1[m], bPair[0]);
+                        }
+                        if (tmp < top)
+                        {
+                            top = tmp;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return top;
+}
+
+double BAChannel::dihedralAngle(vector<TLorentzVector> surf1, vector<TLorentzVector> surf2)
+{
+    if (surf1.size() != 2 || surf2.size() != 2) return 0;
+    TVector3 v1 = surf1[0].Vect(), v2 = surf1[1].Vect(), w1 = surf2[0].Vect(), w2 = surf2[1].Vect();
+    TVector3 n1 = v1.Cross(v2), n2 = w1.Cross(w2);
+    return n1.Angle(n2);
+}
+
+double BAChannel::deltaPhi(vector<TLorentzVector> surf, TLorentzVector vec)
+{
+    if (surf.size() != 2) return 0;
+    TVector3 v1 = surf[0].Vect(), v2 = surf[1].Vect(), w = vec.Vect();
+    return (v1.Cross(v2)).Angle(w);
 }
 
 bool BAChannel::trigger()
@@ -172,7 +215,6 @@ void BAChannel::preprocess()
         }
         
     }
-    signal.nJet = bJet.size() + lightJet.size();
     signal.Ht = Ht;
     
     for (int i = 0; i < photon.size(); i++)
@@ -290,6 +332,7 @@ void BAChannel::process()
 {
     //HiggsCand higgsA, higgsB;
     preprocess();
+    signal.status = true;
     if (trigger())
     {
         selPhotonPair();
@@ -302,6 +345,8 @@ void BAChannel::process()
             if (/* (bPair[0].Pt() > bPair[1].Pt() && bPair[0].Pt() > 40 && bPair[1].Pt() > 30) 
             || (bPair[0].Pt() < bPair[1].Pt() && bPair[0].Pt() > 30 && bPair[1].Pt() > 40) */ true)
             {
+                bPair = ptSort(bPair);
+                lightJet = ptSort(lightJet);
                 signal.b1 = bPair[0];
                 signal.b2 = bPair[1];
                 signal.other1 = photonPair[0];
@@ -309,23 +354,40 @@ void BAChannel::process()
                 signal.higgs1 = bPair[0] + bPair[1];
                 signal.higgs2 = photonPair[0] + photonPair[1];
 
-                signal.jetList = ptSort(lightJet);
-                signal.hardJet = signal.jetList[0];
-                signal.topness = topness();
+                signal.jetList = lightJet;
+                signal.hardJet = lightJet[0];
+                signal.dih_bbaa = dihedralAngle(bPair, photonPair);
+                signal.deltaPhi = (photonPair[0] + photonPair[1]).DeltaPhi(bPair[1]);
+                signal.nJet = bPair.size() + lightJet.size();
+                if (lightJet.size() < 3)
+                {
+                    signal.topness = -1;
+                    signal.topness2 = -1;
+                }
+                else if (lightJet.size() >= 3 && lightJet.size() < 5)
+                {
+                    signal.topness = topness();
+                    signal.topness2 = -1;
+                }
+                else
+                {
+                    signal.topness = topness();
+                    signal.topness2 = topness2();
+                }
             }
             else
             {
-                status = false;
+                signal.status = false;
             }
         }
         else
         {
-            status = false;
+            signal.status = false;
         }
     }
     else
     {
-        status = false;
+        signal.status = false;
     }
 }
 

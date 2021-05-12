@@ -11,7 +11,7 @@ vector<double> histConverter(TH1D *hist, double scale, int nBin)
     }
     else
     {
-        for (int i = 0; i < nBin; i++)
+        for (int i = 1; i <= nBin; i++)
         {
             tmp.push_back(hist->GetBinContent(i) * scale);
         }
@@ -91,7 +91,7 @@ vector<double> addVec(vector<double> vec1, vector<double> vec2)
     }
 }
 
-vector<vector<double>> sigmaCalc(vector<vector<double>> sigList, vector<double> assumption, vector<double> bkg, vector<int> kapLam)
+vector<vector<double>> sigmaCalc(vector<vector<double>> sigList, vector<double> assumption, vector<double> bkg, vector<float> kapLam)
 {
     vector<vector<double>> result;
     Data bestFit;

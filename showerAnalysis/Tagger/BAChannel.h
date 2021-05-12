@@ -48,7 +48,8 @@ private:
     int flavourAssociation(TLorentzVector);
     vector<TLorentzVector> ptSort(vector<TLorentzVector>);
     bool trigger();
-    double topness(), chi2(TLorentzVector, TLorentzVector, TLorentzVector);
+    double topness(), topness2(), chi2(TLorentzVector, TLorentzVector, TLorentzVector), dihedralAngle(vector<TLorentzVector>, vector<TLorentzVector>);
+    double deltaPhi(vector<TLorentzVector>, TLorentzVector);
 
 public:
     SignalEvent signal;
