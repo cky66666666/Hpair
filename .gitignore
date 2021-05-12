@@ -8,3 +8,4 @@
 /partonAnalysis/hist
 /partonAnalysis/CMakeLists.txt
 /statistics/build
+/statistics/graph
